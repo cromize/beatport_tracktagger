@@ -3,6 +3,8 @@
 import requests
 import json
 import mutagen
+import glob
+import re
 
 from lxml import html
 from mutagen.flac import FLAC
@@ -92,6 +94,7 @@ class Track:
       Track.database.append(track_object)
 
   def scanFiles():
+    filetypes = '.flac'
     files = glob.glob('**', recursive=True)
     outputFiles = []
     count = 0
@@ -99,25 +102,39 @@ class Track:
     # For wavs only
     for f in files:
       file_path = f
+      # win
       f = f.split('\\')[-1]
+      # linux 
+      f = f.split('/')[-1]
 
-      if f.lower().endswith('.wav'):
+      if f.lower().endswith(filetypes):
         if beatport_id_pattern.match(f):
           outputFiles.append(file_path)
           count += 1
 
-  return outputFiles
-
+    return outputFiles
 
   def trackInDB(beatport_id):
     for track in Track.database:
       if track.beatport_id == beatport_id: return True
 
-  return False
+    return False
 
-tr = Track("1839527")
-tr.getTags()
+  def fileTagsUpdate(self, path):
+    file = FLAC(path)  
+    file["title"] = u"Title"
+    print(file.pprint())
+    #file.save()
+    
 
-tr.printTrackInfo()
+if __name__ == "__main__": 
+  beatport_id_pattern = re.compile('^[0-9]+[_]')
+  tr = Track("1839527")
+  #tr.getTags()
+  tr.fileTagsUpdate(Track.scanFiles().pop())
 
-audio = FLAC("data/3058620_Cruoris_Civilis_Original_Mix.flac")
+  #print(Track.scanFiles())
+
+  #tr.printTrackInfo()
+
+  #audio = FLAC("data/3058620_Cruoris_Civilis_Original_Mix.flac")
