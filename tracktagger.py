@@ -122,9 +122,30 @@ class Track:
 
   def fileTagsUpdate(self, path):
     file = FLAC(path)  
-    file["title"] = u"Title"
+
+    if len(self.artists) == 1: file['ARTIST'] = self.artists
+    else:
+      temp = ""
+      count = 0
+
+      for artist in self.artists:
+        temp += artist
+        if count < len(self.artists) - 1:
+           temp += ", "
+
+        count += 1
+      file['ARTIST'] = [temp]
+
+    #file['BPM'] = self.bpm
+    file['DATE'] = self.released[:4]
+    file['GENRE'] = self.genre
+    file['ORGANIZATION'] = self.label
+    #file['VERSION'] = self.remixer
+    #file['RELEASEDATE'] = self.released
+    file['TITLE'] = self.title + " (" + self.remixer + ")"
+
     print(file.pprint())
-    #file.save()
+    file.save()
     
 
 if __name__ == "__main__": 
