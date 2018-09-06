@@ -124,7 +124,8 @@ class Track:
 
     return False
 
-  def fileTagsUpdate(self, path):
+  def fileTagsUpdate(self):
+    path = self.file_path
     file = FLAC(path)  
 
     if len(self.artists) == 1: file['ARTIST'] = self.artists
@@ -150,6 +151,10 @@ class Track:
 
     print(file.pprint())
     file.save()
+
+  def cleanTags(file_path):
+    file = FLAC(file_path)
+    file.delete()
 
   def addTrackToDatabase(filepath):
     count_added = 0
@@ -219,7 +224,7 @@ if __name__ == "__main__":
       track.fileTagsUpdate()
 
   if args.clean_tags:
-    for file in wav_files:
+    for file in flac_files:
       Track.cleanTags(file)
 
   print ('Done')
