@@ -6,6 +6,7 @@ import json
 import mutagen
 import glob
 import re
+import sys
 
 from lxml import html
 from mutagen.flac import FLAC
@@ -164,7 +165,7 @@ class Track:
       beatport_id = beatport_id_pattern.match(filename).group()[:-1]
 
       if Track.trackInDB(beatport_id):
-        print ('Track is already in DB!')
+        print('Track is already in DB!')
         return count_added
 
       track = Track(beatport_id)
@@ -177,11 +178,11 @@ class Track:
         if askUser('Found a track, is this correct? (Y/N/Enter): ', enter=True):
           count += 1
           Track.database.append(track)
-          print ('\nTrack added to database.\n')
-        else: print ('\nIgnoring...\n')
+          print('\nTrack added to database.\n')
+        else: print('\nIgnoring...\n')
       else:
         Track.database.append(track)
-        print ('\nTrack added to database.\n') 
+        print('\nTrack added to database.\n') 
     return count_added
 
   def processFiles(files):
@@ -192,7 +193,7 @@ class Track:
       count += 1
     
 def argsParserInit():
-  parser = argparse.ArgumentParser()
+  parser = argparse.ArgumentParser(description="tag audio files with Beatport ID easily.")
   parser.add_argument('-s', '--sync', action='store_true', help='get info from Beatport')
   parser.add_argument('-t', '--tag-files', action='store_true', help='update tags in audio files')
   parser.add_argument('-c', '--clean-tags', action='store_true', help='clean tags in audio files')
@@ -200,26 +201,31 @@ def argsParserInit():
   parser.add_argument('-v', '--verbose', action='store_true', help='verbose output')
   parser.add_argument('--save-db', help='save tags to database', default='tracks.db')
   parser.add_argument('--load-db', help='load tags from database', default='tracks.db')
-  return parser.parse_args()
+  return parser
 
 if __name__ == "__main__": 
-  args = argsParserInit()
-  beatport_id_pattern = re.compile('^[0-9]+[_]')
+  input_parser = argsParserInit()
+  args = input_parser.parse_args()
 
+  if (len(sys.argv) <= 1):
+    input_parser.print_help()  
+    sys.exit(0)
+
+  beatport_id_pattern = re.compile('^[0-9]+[_]')
   flac_files = Track.scanFiles()
 
   if isfile(args.load_db):
-    print ('Database found! Loading data...')
+    print('Database found! Loading data...')
     Track.openDatabaseJSON(args.load_db)
     Track.loadTracks()
-    print (f'Number of tracks in db: {len(Track.database)}' )
+    print(f'Number of tracks in db: {len(Track.database)}' )
 
   if args.sync:
     Track.processFiles(flac_files)
     Track.saveDatabaseJSON('tracks.db')
 
   if args.tag_files: 
-    print ('Updating audio tags...')
+    print('Updating audio tags...')
     for track in Track.database:
       track.fileTagsUpdate()
 
@@ -227,7 +233,7 @@ if __name__ == "__main__":
     for file in flac_files:
       Track.cleanTags(file)
 
-  print ('Done')
+  print('Done')
   #x = input()
 
   #tr.getTags()
