@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # TODO: add output folder arg
-# TODO: better printout
 shopt -s globstar
-
-#LIST=$(find $1 -name "*.wav" -o -name "*.aiff" -exec {} \;)
-#file_count=$(find $1 -name "*.wav" -o -name "*.aiff" -exec {} \; | wc -c)
 
 echo "Tool for converting wav, aiff files to flac (using sox)"
 echo
 
-parallel -k 'sox {} {.}.flac | echo "{#}) {}"' ::: **/*.wav
+wav_files=(**/*.wav)
+wav_files_count="${#wav_files[@]}"
+export wav_files_count
+
+parallel -k --env wav_files_count 'sox {} {.}.flac | echo "{#}/$wav_files_count) {}"' ::: **/*.wav
 
