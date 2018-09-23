@@ -6,9 +6,9 @@ shopt -s globstar
 echo "Tool for converting wav, aiff files to flac (using sox)"
 echo
 
-wav_files=(**/*.wav)
-wav_files_count="${#wav_files[@]}"
-export wav_files_count
+audio_files=(**/*.{wav,aiff})
+audio_files_count="${#audio_files[@]}"
+export audio_files_count
 
-parallel -k --env wav_files_count 'sox {} {.}.flac | echo "{#}/$wav_files_count) {}"' ::: **/*.wav
+parallel -k --env audio_files_count 'sox {} {.}.flac | echo "{#}/$audio_files_count) {}"' ::: **/*.{wav,aiff}
 
