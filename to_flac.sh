@@ -10,9 +10,5 @@ shopt -s globstar
 echo "Tool for converting wav, aiff files to flac (using sox)"
 echo
 
-i=1
-for file in **/*.wav; do
-  sox "$file" "${file%.*}.flac"
-  echo "$i) $file"
-  ((i++))
-done
+parallel -k 'sox {} {.}.flac | echo "{#}) {}"' ::: **/*.wav
+
