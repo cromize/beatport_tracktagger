@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import argparse
 import requests
 import json
@@ -7,6 +6,7 @@ import mutagen
 import glob
 import re
 import sys
+import os
 
 from lxml import html
 from mutagen.flac import FLAC
@@ -112,10 +112,13 @@ class Track:
     for f in files:
       file_path = f
       # win
-      f = f.split('\\')[-1]
+      if os.name == 'nt':
+        f = f.split('\\')[-1]
       # linux 
-      f = f.split('/')[-1]
+      else:
+        f = f.split('/')[-1]
 
+      # if match, add to list
       if f.lower().endswith(filetypes):
         if beatport_id_pattern.match(f):
           outputFiles.append(file_path)
@@ -133,11 +136,13 @@ class Track:
     path = self.file_path
     file = FLAC(path)  
 
+    # single artist
     if len(self.artists) == 1: file['ARTIST'] = self.artists
     else:
       temp = ""
       count = 0
 
+      # multiple artists
       for artist in self.artists:
         temp += artist
         if count < len(self.artists) - 1:
@@ -153,18 +158,25 @@ class Track:
     #file['VERSION'] = self.remixer
     #file['RELEASEDATE'] = self.released
     file['TITLE'] = self.title + " (" + self.remixer + ")"
+    file['ALBUM'] = self.album
 
     print(file.pprint())
     file.save()
 
-  def cleanTags(file_path):
-    file = FLAC(file_path)
+  def cleanTags(filepath):
+    file = FLAC(filepath)
     file.delete()
 
   def addTrackToDatabase(filepath):
     count_added = 0
-    filename = filepath.split('\\')[-1]
-    filename = filepath.split('/')[-1]
+    # win
+    if os.name == 'nt':
+      filename = filepaht.split('\\')[-1]
+    # linux 
+    else:
+      filename = filepath.split('/')[-1]
+
+    # if is valid beatport file
     if beatport_id_pattern.match(filename):
       beatport_id = beatport_id_pattern.match(filename).group()[:-1]
 
@@ -172,23 +184,28 @@ class Track:
         print('Track is already in DB!')
         return count_added
 
+      # create and get tags
       track = Track(beatport_id)
       track.file_path = filepath
       track.file_name = filename
       track.getTags()
 
-      if args.verbose: track.printTrackInfo()
+      if args.verbose:
+        track.printTrackInfo()
+
       if args.ask:
         if askUser('Found a track, is this correct? (Y/N/Enter): ', enter=True):
           count += 1
           Track.database.append(track)
           print('Track added to database.\n')
-        else: print('\nIgnoring...\n')
+        else:
+          print('\nIgnoring...\n')
       else:
         Track.database.append(track)
         print('Track added to database.\n') 
     return count_added
 
+  # add track to db
   def processFiles(files):
     count = 1
     for f in files:
@@ -208,36 +225,44 @@ def argsParserInit():
   return parser
 
 if __name__ == "__main__": 
+  # input parser
   input_parser = argsParserInit()
   args = input_parser.parse_args()
 
+  # args chech
   if (len(sys.argv) <= 1):
     input_parser.print_help()  
     sys.exit(0)
 
+  # scan for flac files
   beatport_id_pattern = re.compile('^[0-9]+[_]')
   flac_files = Track.scanFiles()
 
+  # load existing db
   if isfile(args.load_db):
     print('Database found! Loading data...')
     Track.openDatabaseJSON(args.load_db)
     Track.loadTracks()
     print(f'Number of tracks in db: {len(Track.database)}' )
 
+  # get tags from beatport
   if args.sync:
     Track.processFiles(flac_files)
     Track.saveDatabaseJSON('tracks.db')
 
+  # tag audio files
   if args.tag_files: 
     print('Updating audio tags...')
     for track in Track.database:
       track.fileTagsUpdate()
 
+  # clean file tags
   if args.clean_tags:
     for file in flac_files:
       Track.cleanTags(file)
 
   print('Done')
+
   #x = input()
 
   #tr.getTags()
