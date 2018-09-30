@@ -24,6 +24,7 @@ class Track:
 
     self.artists = []
     self.title = 'N/A'
+    self.album = 'N/A'
     self.remixer = 'N/A'
     self.length = 'N/A'
     self.released = 'N/A'
@@ -62,6 +63,8 @@ class Track:
     self.genre = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[5]/span[2]/a/text()').pop()
     self.label = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[6]/span[2]/a/text()').pop()
 
+    self.album = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/@data-ec-name').pop()
+
   def printTrackInfo(self):
     print ('Track: ', end='')
 
@@ -73,7 +76,8 @@ class Track:
       x += 1
 
     print (f' - {self.title} ({self.remixer})')
-    print (f'Length: {self.length}\n'
+    print (f'Album: {self.album}\n'
+           f'Length: {self.length}\n'
            f'Released: {self.released}\n'
            f'BPM: {self.bpm}\n'
            f'Key: {self.key}\n'
@@ -178,17 +182,17 @@ class Track:
         if askUser('Found a track, is this correct? (Y/N/Enter): ', enter=True):
           count += 1
           Track.database.append(track)
-          print('\nTrack added to database.\n')
+          print('Track added to database.\n')
         else: print('\nIgnoring...\n')
       else:
         Track.database.append(track)
-        print('\nTrack added to database.\n') 
+        print('Track added to database.\n') 
     return count_added
 
   def processFiles(files):
     count = 1
     for f in files:
-      print(f"Track {count}/{Track.track_count} - {f}") 
+      print(f"{count}/{Track.track_count} - {f}") 
       Track.addTrackToDatabase(f)
       count += 1
     
