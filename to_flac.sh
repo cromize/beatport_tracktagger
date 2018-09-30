@@ -11,13 +11,14 @@ die() {
 }
 
 # input args
-input_folder=
+input_folder="$PWD"
 output_folder=
 while :; do
   case $1 in
     # --input
     -i|--input)
       if [ "$2" ]; then
+        unset input_folder
         input_folder="$(readlink -nf $2)"
         shift
       fi
@@ -79,7 +80,7 @@ fi
 echo $command
 
 # TODO: make skip system
-# TODO: BUG: it fails, when input_folder array is empty
+
 # run in parallel
 parallel -k -j$MAX_PARALLEL --env audio_files_count,output_folder,input_folder $command ::: "${input_folder[@]}"/**/*.aiff "${input_folder[@]}"/**/*.wav
 
