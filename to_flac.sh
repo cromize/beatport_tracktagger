@@ -1,6 +1,10 @@
 #!/bin/bash
 
+MAX_PARALLEL=20
+
+IFS=$'\n'
 shopt -s globstar
+
 die() {
   printf '%s\n' "$1" >&2
   exit 1
@@ -14,7 +18,7 @@ while :; do
     # --input
     -i|--input)
       if [ "$2" ]; then
-        input_folder=("$(readlink -nf $2)")
+        input_folder="$(readlink -nf $2)"
         shift
       fi
       ;;
@@ -42,7 +46,7 @@ echo "tool for converting wav, aiff files to flac (using sox)"
 echo "by cromize"
 echo
 
-files="$input_folder"/**/*.{wav,aiff}
+files=("$input_folder"/**/*.{wav,aiff})
 audio_files_count="${#files[@]}"
 
 export audio_files_count
@@ -52,11 +56,7 @@ export output_folder
 echo "files: $audio_files_count"
 
 # input arg
-if [ ! "$input_folder" ]; then
-  command='sox {}' 
-else
-  command='sox "'"$input_folder"/{/}'"'
-fi
+command='sox {}'
 
 # output arg
 if [ ! "$output_folder" ]; then
@@ -81,5 +81,5 @@ echo $command
 # TODO: make skip system
 # TODO: BUG: it fails, when input_folder array is empty
 # run in parallel
-parallel -k -j30 --env audio_files_count,output_folder,input_folder $command ::: "${input_folder[@]}"/**/*.{wav,aiff}
+parallel -k -j$MAX_PARALLEL --env audio_files_count,output_folder,input_folder $command ::: "${input_folder[@]}"/**/*.aiff "${input_folder[@]}"/**/*.wav
 
