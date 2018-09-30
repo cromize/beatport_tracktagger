@@ -10,7 +10,7 @@ die() {
   exit 1
 }
 
-# input args
+# extract input args
 input_folder="$PWD"
 output_folder=
 while :; do
@@ -47,6 +47,7 @@ echo "tool for converting wav, aiff files to flac (using sox)"
 echo "by cromize"
 echo
 
+# all work files
 files=("$input_folder"/**/*.{wav,aiff})
 audio_files_count="${#files[@]}"
 
@@ -76,8 +77,6 @@ else
   command+="$output_folder"/{/.}.flac
 fi
 # ********
-
-echo $command
 
 # TODO: make skip system
 
