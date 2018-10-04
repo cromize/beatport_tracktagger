@@ -190,7 +190,7 @@ class Track:
 
       # create and get tags
       track = Track(beatport_id)
-      track.file_path = filepath
+      track.file_path = os.path.abspath(filepath)
       track.file_name = filename
       track.getTags()
 
@@ -274,14 +274,3 @@ if __name__ == "__main__":
       Track.cleanTags(file)
 
   print('Done')
-
-  #x = input()
-
-  #tr.getTags()
-  #tr.fileTagsUpdate(Track.scanFiles().pop())
-
-  #print(Track.scanFiles())
-
-  #tr.printTrackInfo()
-
-  #audio = FLAC("data/3058620_Cruoris_Civilis_Original_Mix.flac")
