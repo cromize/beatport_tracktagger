@@ -13,6 +13,8 @@ from lxml import html
 from mutagen.flac import FLAC
 from os.path import isfile
 
+# TODO: make it scan filepath at start. when we tranfer our db to diff PC, filepath will differ
+
 class Track:
   json_database = []
   database = []
@@ -51,8 +53,7 @@ class Track:
     artistCount = len(artistCount)
 
     for artist in range(1, artistCount + 1):
-      path = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a[' + str(artist) +\
-          ']/text()')
+      path = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a[' + str(artist) + ']/text()')
 
       self.artists.append(path.pop())
 
@@ -65,7 +66,6 @@ class Track:
     self.key = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[4]/span[2]/text()').pop()
     self.genre = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[5]/span[2]/a/text()').pop()
     self.label = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[6]/span[2]/a/text()').pop()
-
     self.album = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/@data-ec-name').pop()
 
   def printTrackInfo(self):
@@ -190,8 +190,7 @@ class Track:
 
       # create and get tags
       track = Track(beatport_id)
-      # TODO: we dont save file path for now
-      #track.file_path = filepath
+      track.file_path = filepath
       track.file_name = filename
       track.getTags()
 
@@ -204,15 +203,16 @@ class Track:
 
     return Track.processing_iterator
 
-  # add track to db
+  # add all valid files to database
   def processFiles(files):
-
+    # TODO: add thread count limit here
     threads = []
     for f in files:
       t = threading.Thread(target=Track.addTrackToDatabase, args=(f,))
       threads.append(t)
       t.start()
 
+    # wait for workers
     for t in threads:
       t.join()
     
@@ -256,8 +256,17 @@ if __name__ == "__main__":
   # tag audio files
   if args.tag_files: 
     print('Updating audio tags...')
+
+    # TODO: add thread count limit here
+    threads = []
     for track in Track.database:
-      track.fileTagsUpdate()
+      t = threading.Thread(target=track.fileTagsUpdate)
+      threads.append(t)
+      t.start()
+
+    # wait for workers
+    for t in threads:
+      t.join()
 
   # clean file tags
   if args.clean_tags:
