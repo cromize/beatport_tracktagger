@@ -196,16 +196,9 @@ class Track:
       if args.verbose:
         track.printTrackInfo()
 
-      if args.ask:
-        if askUser('Found a track, is this correct? (Y/N/Enter): ', enter=True):
-          count_added += 1
-          Track.database.append(track)
-          print('Track added to database.\n')
-        else:
-          print('\nIgnoring...\n')
-      else:
-        Track.database.append(track)
-        print('Track added to database.\n') 
+      count_added += 1
+      Track.database.append(track)
+      print('Track added to database.\n') 
 
     #print(f"{count_added}/{Track.track_count} - {track.file_path}") 
     return count_added
@@ -230,7 +223,6 @@ def argsParserInit():
   parser.add_argument('-s', '--sync', action='store_true', help='get info from Beatport')
   parser.add_argument('-t', '--tag-files', action='store_true', help='update tags in audio files')
   parser.add_argument('-c', '--clean-tags', action='store_true', help='clean tags in audio files')
-  parser.add_argument('-a', '--ask', action='store_true', help='print info and ask user')
   parser.add_argument('-v', '--verbose', action='store_true', help='verbose output')
   parser.add_argument('-i', '--input', help='specify input', default='')
   parser.add_argument('--save-db', help='save tags to database', default='tracks.db')
