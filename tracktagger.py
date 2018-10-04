@@ -16,6 +16,8 @@ from os.path import isfile
 class Track:
   json_database = []
   database = []
+  
+  processing_iterator = 0
 
   # from file scan
   track_count = 0
@@ -170,7 +172,6 @@ class Track:
     file.delete()
 
   def addTrackToDatabase(filepath):
-    count_added = 0
     # win
     if os.name == 'nt':
       filename = filepath.split('\\')[-1]
@@ -183,8 +184,9 @@ class Track:
       beatport_id = beatport_id_pattern.match(filename).group()[:-1]
 
       if Track.trackInDB(beatport_id):
-        print('Track is already in DB!')
-        return count_added
+        Track.processing_iterator += 1
+        print(f'{Track.processing_iterator}/{Track.track_count} - (Already in DB) {filename}')
+        return Track.processing_iterator
 
       # create and get tags
       track = Track(beatport_id)
@@ -196,25 +198,21 @@ class Track:
       if args.verbose:
         track.printTrackInfo()
 
-      count_added += 1
+      Track.processing_iterator += 1
       Track.database.append(track)
-      print('Track added to database.\n') 
+      print(f"{Track.processing_iterator}/{Track.track_count} - {track.file_name}") 
 
-    #print(f"{count_added}/{Track.track_count} - {track.file_path}") 
-    return count_added
+    return Track.processing_iterator
 
   # add track to db
   def processFiles(files):
-    count = 1
 
     threads = []
     for f in files:
       t = threading.Thread(target=Track.addTrackToDatabase, args=(f,))
       threads.append(t)
-      print(f"{count}/{Track.track_count} - {f}") 
       t.start()
 
-    count += 1
     for t in threads:
       t.join()
     
