@@ -7,6 +7,7 @@ import glob
 import re
 import sys
 import os
+import threading
 
 from lxml import html
 from mutagen.flac import FLAC
@@ -103,14 +104,15 @@ class Track:
       track_object.__dict__ = json.loads(track)
       Track.database.append(track_object)
 
-  def scanFiles():
+  def scanFiles(input):
     filetypes = '.flac'
-    files = glob.glob('**', recursive=True)
+    files = glob.glob(os.path.join(input, '**'), recursive=True)
     outputFiles = []
 
     # For wavs only
     for f in files:
       file_path = f
+
       # win
       if os.name == 'nt':
         f = f.split('\\')[-1]
@@ -171,7 +173,7 @@ class Track:
     count_added = 0
     # win
     if os.name == 'nt':
-      filename = filepaht.split('\\')[-1]
+      filename = filepath.split('\\')[-1]
     # linux 
     else:
       filename = filepath.split('/')[-1]
@@ -186,7 +188,8 @@ class Track:
 
       # create and get tags
       track = Track(beatport_id)
-      track.file_path = filepath
+      # TODO: we dont save file path for now
+      #track.file_path = filepath
       track.file_name = filename
       track.getTags()
 
@@ -195,7 +198,7 @@ class Track:
 
       if args.ask:
         if askUser('Found a track, is this correct? (Y/N/Enter): ', enter=True):
-          count += 1
+          count_added += 1
           Track.database.append(track)
           print('Track added to database.\n')
         else:
@@ -203,15 +206,24 @@ class Track:
       else:
         Track.database.append(track)
         print('Track added to database.\n') 
+
+    #print(f"{count_added}/{Track.track_count} - {track.file_path}") 
     return count_added
 
   # add track to db
   def processFiles(files):
     count = 1
+
+    threads = []
     for f in files:
+      t = threading.Thread(target=Track.addTrackToDatabase, args=(f,))
+      threads.append(t)
       print(f"{count}/{Track.track_count} - {f}") 
-      Track.addTrackToDatabase(f)
-      count += 1
+      t.start()
+
+    count += 1
+    for t in threads:
+      t.join()
     
 def argsParserInit():
   parser = argparse.ArgumentParser(description="tag audio files with Beatport ID easily.")
@@ -220,6 +232,7 @@ def argsParserInit():
   parser.add_argument('-c', '--clean-tags', action='store_true', help='clean tags in audio files')
   parser.add_argument('-a', '--ask', action='store_true', help='print info and ask user')
   parser.add_argument('-v', '--verbose', action='store_true', help='verbose output')
+  parser.add_argument('-i', '--input', help='specify input', default='')
   parser.add_argument('--save-db', help='save tags to database', default='tracks.db')
   parser.add_argument('--load-db', help='load tags from database', default='tracks.db')
   return parser
@@ -229,14 +242,14 @@ if __name__ == "__main__":
   input_parser = argsParserInit()
   args = input_parser.parse_args()
 
-  # args chech
+  # args check
   if (len(sys.argv) <= 1):
     input_parser.print_help()  
     sys.exit(0)
 
   # scan for flac files
   beatport_id_pattern = re.compile('^[0-9]+[_]')
-  flac_files = Track.scanFiles()
+  flac_files = Track.scanFiles(args.input)
 
   # load existing db
   if isfile(args.load_db):
