@@ -14,7 +14,7 @@ from lxml import html
 from mutagen.flac import FLAC
 from os.path import isfile
 
-num_worker_threads=10
+num_worker_threads=20
 
 # TODO: make it scan filepath at start. when we tranfer our db to diff PC, filepath will differ
 
@@ -165,7 +165,6 @@ class Track:
     file['TITLE'] = self.title + " (" + self.remixer + ")"
     file['ALBUM'] = self.album
 
-    print(file.pprint())
     file.save()
 
   def cleanTags(filepath):
@@ -230,7 +229,7 @@ class Track:
       item = queue.get()
       if item is None:
         break
-      work(item) or item.work
+      work(item)
       queue.task_done()
     
 def argsParserInit():
@@ -273,25 +272,11 @@ if __name__ == "__main__":
   # tag audio files
   if args.tag_files: 
     print('Updating audio tags...')
-
-    q = queue.Queue()
-    threads = []
-    for i in range(num_worker_threads):
-      t = threading.Thread(target=Track.worker, args=(Track.fileTagsUpdate,q))
-      threads.append(t)
-      t.start()
-
+    i = 1
     for track in Track.database:
-      q.put(track) 
-
-    # wait for workers
-    q.join()
-    
-    # kill workers
-    for i in range(num_worker_threads):
-      q.put(None)
-    for t in threads:
-      t.join() 
+      track.fileTagsUpdate()
+      print(f'{i}/{Track.track_count} - {track.file_name}')
+      i += 1
 
   # clean file tags
   if args.clean_tags:
