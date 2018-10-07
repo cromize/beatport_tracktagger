@@ -8,10 +8,13 @@ import re
 import sys
 import os
 import threading
+import queue
 
 from lxml import html
 from mutagen.flac import FLAC
 from os.path import isfile
+
+num_worker_threads=10
 
 # TODO: make it scan filepath at start. when we tranfer our db to diff PC, filepath will differ
 
@@ -111,7 +114,7 @@ class Track:
     files = glob.glob(os.path.join(input, '**'), recursive=True)
     outputFiles = []
 
-    # For wavs only
+    # For flacs only
     for f in files:
       file_path = f
 
@@ -127,13 +130,11 @@ class Track:
         if beatport_id_pattern.match(f):
           outputFiles.append(file_path)
           Track.track_count += 1
-
     return outputFiles
 
   def trackInDB(beatport_id):
     for track in Track.database:
       if track.beatport_id == beatport_id: return True
-
     return False
 
   def fileTagsUpdate(self):
@@ -205,16 +206,32 @@ class Track:
 
   # add all valid files to database
   def processFiles(files):
-    # TODO: add thread count limit here
+    q = queue.Queue()
     threads = []
-    for f in files:
-      t = threading.Thread(target=Track.addTrackToDatabase, args=(f,))
-      threads.append(t)
+    for i in range(num_worker_threads):
+      t = threading.Thread(target=Track.worker, args=(Track.addTrackToDatabase,q))
       t.start()
+      threads.append(t)
+
+    for f in files:
+      q.put(f) 
 
     # wait for workers
+    q.join()
+    
+    # kill workers
+    for i in range(num_worker_threads):
+      q.put(None)
     for t in threads:
-      t.join()
+      t.join() 
+
+  def worker(work, queue):
+    while True:
+      item = queue.get()
+      if item is None:
+        break
+      work(item) or item.work
+      queue.task_done()
     
 def argsParserInit():
   parser = argparse.ArgumentParser(description="tag audio files with Beatport ID easily.")
@@ -257,16 +274,24 @@ if __name__ == "__main__":
   if args.tag_files: 
     print('Updating audio tags...')
 
-    # TODO: add thread count limit here
+    q = queue.Queue()
     threads = []
-    for track in Track.database:
-      t = threading.Thread(target=track.fileTagsUpdate)
+    for i in range(num_worker_threads):
+      t = threading.Thread(target=Track.worker, args=(Track.fileTagsUpdate,q))
       threads.append(t)
       t.start()
 
+    for track in Track.database:
+      q.put(track) 
+
     # wait for workers
+    q.join()
+    
+    # kill workers
+    for i in range(num_worker_threads):
+      q.put(None)
     for t in threads:
-      t.join()
+      t.join() 
 
   # clean file tags
   if args.clean_tags:
