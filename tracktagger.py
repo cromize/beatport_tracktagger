@@ -194,12 +194,12 @@ class Track:
       track.file_name = filename
       track.getTags()
 
-      if args.verbose:
-        track.printTrackInfo()
-
       Track.processing_iterator += 1
       Track.database.append(track)
       print(f"{Track.processing_iterator}/{Track.track_count} - {track.file_name}") 
+
+      if args.verbose:
+        track.printTrackInfo()
 
     return Track.processing_iterator
 
