@@ -16,6 +16,8 @@ from os.path import isfile
 
 num_worker_threads=20
 
+# TODO: add artwork query
+
 # TODO: make it scan filepath at start. when we tranfer our db to diff PC, filepath will differ
 
 class Track:
@@ -244,6 +246,11 @@ def argsParserInit():
   return parser
 
 if __name__ == "__main__": 
+  print('|------------------------|')
+  print('| beatport_tagger v0.5.0 |')
+  print('|   by: cromize (2017)   |')
+  print('|------------------------|\n')
+
   # input parser
   input_parser = argsParserInit()
   args = input_parser.parse_args()
