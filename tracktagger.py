@@ -194,7 +194,14 @@ class Track:
       track = Track(beatport_id)
       track.file_path = os.path.abspath(filepath)
       track.file_name = filename
-      track.getTags()
+
+      # try 10 times
+      for tries in range(10):
+        try:
+          track.getTags()
+          break
+        except:
+          pass
 
       Track.processing_iterator += 1
       Track.database.append(track)
