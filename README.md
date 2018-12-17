@@ -3,6 +3,12 @@ Beatport Tracktagger
 
 This project is a rework of an old beatport ID tagging tool. It's capable of getting useful tags from beatport and assigning them into audio file.
 
+Installation
+-----
+```
+pip3 install lxml requests mutagen
+```
+
 Usage
 -----
 ```
@@ -30,3 +36,10 @@ Libraries Used
 * requests for pulling webpage
 * lxml for parsing info
 * mutagen for assigning tags to files
+
+TODO
+-----
+* artwork query
+* more audio formats
+* website UI
+

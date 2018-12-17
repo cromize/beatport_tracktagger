@@ -20,6 +20,8 @@ num_worker_threads=20
 
 # TODO: make it scan filepath at start. when we tranfer our db to diff PC, filepath will differ
 
+# TODO: get working directory from program location, instead of current working dir
+
 class Track:
   json_database = []
   database = []
