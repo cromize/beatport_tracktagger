@@ -11,16 +11,16 @@ import threading
 import queue
 
 from lxml import html
-from mutagen.flac import FLAC
+from mutagen.flac import Picture, FLAC
 from os.path import isfile
 
 num_worker_threads=20
 
-# TODO: add artwork query
+# TODO: scan local files for ops, not all tracks in db
 
-# TODO: make it scan filepath at start. when we tranfer our db to diff PC, filepath will differ
+# TODO: make it scan filepath at start. when we tranfer our db to diff PC, filepath will differ. it scans fixed path in db now
 
-# TODO: get working directory from program location, instead of current working dir
+# TODO: get working directory from program location or input source folder, instead of current working dir
 
 class Track:
   json_database = []
@@ -33,7 +33,6 @@ class Track:
 
   def __init__(self, beatport_id = 0):
     self.beatport_id = beatport_id
-
     self.artists = []
     self.title = ''
     self.album = ''
@@ -47,14 +46,16 @@ class Track:
     self.file_name = ''
     self.file_path = ''
 
-  def getTags(self):
+  def queryPage(self):
     try:
       page = requests.get('https://www.beatport.com/track/aa/' + self.beatport_id)
     except requests.exceptions.RequestException as e:
       print (f"Error cannot get track info!")
       sys.exit(1)
+    return html.fromstring(page.content)
 
-    tree = html.fromstring(page.content)
+  def getTags(self):
+    tree = self.queryPage()
 
     artistCount = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a')
     artistCount = len(artistCount)
@@ -74,13 +75,7 @@ class Track:
     self.genre = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[5]/span[2]/a/text()').pop()
     self.label = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[6]/span[2]/a/text()').pop()
     self.album = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/@data-ec-name').pop()
-
-    # query artwork
-    # save as file
-    artwork = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/a/img').pop()
-    with open(self.title + '.jpg', 'wb') as f:
-      img = requests.get(artwork.attrib['src']).content
-      f.write(img)
+    self.artwork_url = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/a/img').pop().attrib['src']
 
   def printTrackInfo(self):
     print ('Track: ', end='')
@@ -150,10 +145,10 @@ class Track:
 
   def fileTagsUpdate(self):
     path = self.file_path
-    file = FLAC(path)  
+    audiof = FLAC(path)  
 
     # single artist
-    if len(self.artists) == 1: file['ARTIST'] = self.artists
+    if len(self.artists) == 1: audiof['ARTIST'] = self.artists
     else:
       temp = ""
       count = 0
@@ -165,20 +160,30 @@ class Track:
            temp += ", "
 
         count += 1
-      file['ARTIST'] = [temp]
+      audiof['ARTIST'] = [temp]
 
-    #file['TBPM'] = self.bpm
-    file['DATE'] = self.released[:4]
-    file['GENRE'] = self.genre
-    file['ORGANIZATION'] = self.label
-    file['TITLE'] = self.title + " (" + self.remixer + ")"
-    file['ALBUM'] = self.album
+    #audiof['TBPM'] = self.bpm
+    audiof['DATE'] = self.released[:4]
+    audiof['GENRE'] = self.genre
+    audiof['ORGANIZATION'] = self.label
+    audiof['TITLE'] = self.title + " (" + self.remixer + ")"
+    audiof['ALBUM'] = self.album
+    audiof.save()
 
-    file.save()
+  # query and save artwork
+  # artwork(500x500)
+  def saveArtwork(self):
+    audiof = FLAC(self.file_path)  
+    img = Picture()
+    img.type = 3
+    img.desc = 'artwork'
+    img.data = requests.get(self.artwork_url).content
+    audiof.add_picture(img)
+    audiof.save()
 
   def cleanTags(filepath):
-    file = FLAC(filepath)
-    file.delete()
+    audiof = FLAC(filepath)
+    audiof.delete()
 
   def addTrackToDatabase(filepath):
     # win
@@ -254,6 +259,7 @@ def argsParserInit():
   parser.add_argument('-t', '--tag-files', action='store_true', help='update tags in audio files')
   parser.add_argument('-c', '--clean-tags', action='store_true', help='clean tags in audio files')
   parser.add_argument('-v', '--verbose', action='store_true', help='verbose output')
+  parser.add_argument('-a', '--artwork', action='store_true', help='update track artwork')
   parser.add_argument('-i', '--input', help='specify input', default='')
   parser.add_argument('--save-db', help='save tags to database', default='tracks.db')
   parser.add_argument('--load-db', help='load tags from database', default='tracks.db')
@@ -300,5 +306,10 @@ if __name__ == "__main__":
   if args.clean_tags:
     for file in flac_files:
       Track.cleanTags(file)
+
+  # save artwork
+  if args.artwork:
+    for track in Track.database:
+      track.saveArtwork()
 
   print('Done')
