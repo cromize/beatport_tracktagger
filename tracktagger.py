@@ -174,6 +174,7 @@ class Track:
   # artwork(500x500)
   def saveArtwork(self):
     audiof = FLAC(self.file_path)  
+    print(audiof.pictures)
     img = Picture()
     img.type = 3
     img.desc = 'artwork'
@@ -183,7 +184,9 @@ class Track:
 
   def cleanTags(filepath):
     audiof = FLAC(filepath)
+    audiof.clear_pictures()
     audiof.delete()
+    audiof.save()
 
   def addTrackToDatabase(filepath):
     # win
@@ -309,7 +312,9 @@ if __name__ == "__main__":
 
   # save artwork
   if args.artwork:
-    for track in Track.database:
+    print("Saving artwork")
+    for idx, track in enumerate(Track.database):
+      print(f'{idx+1}/{Track.track_count} - {track.file_name}')
       track.saveArtwork()
 
   print('Done')

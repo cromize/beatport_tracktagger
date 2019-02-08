@@ -18,11 +18,14 @@ Usage
 # tag files with tags from local db
 ./tracktagger.py -t
 
-# get tags from beatport and update local files
-./tracktagger.py -t -s
+# save artwork from beatport (500x500)
+./tracktagger.py -a
+
+# get tags and artwork from beatport and update local files
+./tracktagger.py -t -s -a
 
 # run from supplied path (including sub-folders)
-./tracktagger.py -t -s -i some/path
+./tracktagger.py -t -s -a -i some/path
 
 ```
 
@@ -39,7 +42,6 @@ Libraries Used
 
 TODO
 -----
-* artwork query
 * more audio formats
 * website UI
 
