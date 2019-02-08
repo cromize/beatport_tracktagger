@@ -35,17 +35,17 @@ class Track:
     self.beatport_id = beatport_id
 
     self.artists = []
-    self.title = 'N/A'
-    self.album = 'N/A'
-    self.remixer = 'N/A'
-    self.length = 'N/A'
-    self.released = 'N/A'
-    self.bpm = 'N/A'
-    self.key = 'N/A'
-    self.genre = 'N/A'
-    self.label = 'N/A'
-    self.file_name = 'N/A'
-    self.file_path = 'N/A'
+    self.title = ''
+    self.album = ''
+    self.remixer = ''
+    self.length = ''
+    self.released = ''
+    self.bpm = ''
+    self.key = ''
+    self.genre = ''
+    self.label = ''
+    self.file_name = ''
+    self.file_path = ''
 
   def getTags(self):
     try:
@@ -74,6 +74,13 @@ class Track:
     self.genre = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[5]/span[2]/a/text()').pop()
     self.label = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[6]/span[2]/a/text()').pop()
     self.album = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/@data-ec-name').pop()
+
+    # query artwork
+    # save as file
+    artwork = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/a/img').pop()
+    with open(self.title + '.jpg', 'wb') as f:
+      img = requests.get(artwork.attrib['src']).content
+      f.write(img)
 
   def printTrackInfo(self):
     print ('Track: ', end='')
@@ -160,12 +167,10 @@ class Track:
         count += 1
       file['ARTIST'] = [temp]
 
-    #file['BPM'] = self.bpm
+    #file['TBPM'] = self.bpm
     file['DATE'] = self.released[:4]
     file['GENRE'] = self.genre
     file['ORGANIZATION'] = self.label
-    #file['VERSION'] = self.remixer
-    #file['RELEASEDATE'] = self.released
     file['TITLE'] = self.title + " (" + self.remixer + ")"
     file['ALBUM'] = self.album
 
@@ -255,10 +260,7 @@ def argsParserInit():
   return parser
 
 if __name__ == "__main__": 
-  print('|------------------------|')
-  print('| beatport_tagger v0.5.0 |')
-  print('|   by: cromize (2017)   |')
-  print('|------------------------|\n')
+  print('beatport_tagger v0.5.0\n')
 
   # input parser
   input_parser = argsParserInit()
