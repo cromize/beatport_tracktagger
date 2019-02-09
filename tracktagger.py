@@ -16,15 +16,13 @@ from os.path import isfile
 
 num_worker_threads=20
 
-# TODO: scan local files for ops, not all tracks in db
-
-# TODO: make it scan filepath at start. when we tranfer our db to diff PC, filepath will differ. it scans fixed path in db now
+# TODO: wont run for single file
 
 # TODO: get working directory from program location or input source folder, instead of current working dir
 
 class Track:
   json_database = []
-  database = []
+  database = dict()
   
   processing_iterator = 0
 
@@ -44,7 +42,6 @@ class Track:
     self.genre = ''
     self.label = ''
     self.file_name = ''
-    self.file_path = ''
 
   def queryPage(self):
     try:
@@ -62,7 +59,6 @@ class Track:
 
     for artist in range(1, artistCount + 1):
       path = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a[' + str(artist) + ']/text()')
-
       self.artists.append(path.pop())
 
     # Get info from beatport
@@ -95,8 +91,7 @@ class Track:
            f'Key: {self.key}\n'
            f'Genre: {self.genre}\n'
            f'Label: {self.label}\n'
-           f'Beatport ID: {self.beatport_id}\n'
-           f'Path: {self.file_path}')
+           f'Beatport ID: {self.beatport_id}\n')
     print ('')
     
   def openDatabaseJSON(file):
@@ -105,15 +100,15 @@ class Track:
 
   def saveDatabaseJSON(file):
     with open(file, 'w') as file:
-      for track in Track.database:
-        track_json = json.dumps(track.__dict__)
+      for k, v in Track.database.items():
+        track_json = json.dumps(v.__dict__)
         file.write(track_json + '\n')
 
   def loadTracks():
     for track in Track.json_database:
       track_object = Track()
       track_object.__dict__ = json.loads(track)
-      Track.database.append(track_object)
+      Track.database[track_object.beatport_id] = track_object
 
   def scanFiles(input):
     filetypes = '.flac'
@@ -139,8 +134,8 @@ class Track:
     return outputFiles
 
   def trackInDB(beatport_id):
-    for track in Track.database:
-      if track.beatport_id == beatport_id: return True
+    if beatport_id in Track.database:
+      return True
     return False
 
   def fileTagsUpdate(self):
@@ -158,11 +153,9 @@ class Track:
         temp += artist
         if count < len(self.artists) - 1:
            temp += ", "
-
         count += 1
       audiof['ARTIST'] = [temp]
 
-    #audiof['TBPM'] = self.bpm
     audiof['DATE'] = self.released[:4]
     audiof['GENRE'] = self.genre
     audiof['ORGANIZATION'] = self.label
@@ -174,7 +167,6 @@ class Track:
   # artwork(500x500)
   def saveArtwork(self):
     audiof = FLAC(self.file_path)  
-    print(audiof.pictures)
     img = Picture()
     img.type = 3
     img.desc = 'artwork'
@@ -219,7 +211,7 @@ class Track:
           pass
 
       Track.processing_iterator += 1
-      Track.database.append(track)
+      Track.database[track.beatport_id] = track
       print(f"{Track.processing_iterator}/{Track.track_count} - {track.file_name}") 
 
       if args.verbose:
@@ -300,21 +292,23 @@ if __name__ == "__main__":
   if args.tag_files: 
     print('Updating audio tags...')
     i = 1
-    for track in Track.database:
-      track.fileTagsUpdate()
-      print(f'{i}/{Track.track_count} - {track.file_name}')
+    for k, v in Track.database.items():
+      print(f'{i}/{Track.track_count} - {v.file_name}')
+      v.fileTagsUpdate()
       i += 1
 
   # clean file tags
   if args.clean_tags:
-    for file in flac_files:
+    print("Clearing tags")
+    for idx, file in enumerate(flac_files):
+      print(f'{idx+1}/{len(flac_files)} - {file}')
       Track.cleanTags(file)
 
   # save artwork
   if args.artwork:
     print("Saving artwork")
-    for idx, track in enumerate(Track.database):
-      print(f'{idx+1}/{Track.track_count} - {track.file_name}')
-      track.saveArtwork()
+    for idx, (k, v) in enumerate(Track.database.items()):
+      print(f'{idx+1}/{Track.track_count} - {v.file_name}')
+      v.saveArtwork()
 
   print('Done')
