@@ -11,6 +11,9 @@ import threading
 import queue
 
 from lxml import html
+from mutagen.mp3 import MP3
+from mutagen.id3 import ID3
+from mutagen.easyid3 import EasyID3
 from mutagen.flac import Picture, FLAC
 from os.path import isfile
 
@@ -42,12 +45,13 @@ class Track:
     self.genre = ''
     self.label = ''
     self.file_name = ''
+    self.file_type = ''
 
   def queryPage(self):
     try:
       page = requests.get('https://www.beatport.com/track/aa/' + self.beatport_id)
     except requests.exceptions.RequestException as e:
-      print (f"Error cannot get track info!")
+      print(f"Error cannot get track info!")
       sys.exit(1)
     return html.fromstring(page.content)
 
@@ -111,26 +115,26 @@ class Track:
       Track.database[track_object.beatport_id] = track_object
 
   def scanFiles(input):
-    filetypes = '.flac'
+    filetypes = '.flac', '.mp3'
     files = glob.glob(os.path.join(input, '**'), recursive=True)
     outputFiles = []
 
-    # For flacs only
+    # For flacs, mp3s 
     for f in files:
-      file_path = f
-
       # win
       if os.name == 'nt':
-        f = f.split('\\')[-1]
+        filename = f.split('\\')[-1]
       # linux 
       else:
-        f = f.split('/')[-1]
+        filename = f.split('/')[-1]
 
-      # if match, add to list
-      if f.lower().endswith(filetypes):
-        if beatport_id_pattern.match(f):
-          outputFiles.append(file_path)
-          Track.track_count += 1
+      # if ends with correct filetype
+      for filetype in filetypes:
+        if filename.lower().endswith(filetype):
+          if beatport_id_pattern.match(filename):
+            outputFiles.append(f)
+            Track.track_count += 1
+            break
     return outputFiles
 
   def trackInDB(beatport_id):
@@ -140,7 +144,10 @@ class Track:
 
   def fileTagsUpdate(self):
     path = self.file_path
-    audiof = FLAC(path)  
+    if self.file_type == ".flac":
+      audiof = FLAC(path)  
+    elif self.file_type == ".mp3":
+      audiof = EasyID3(path)  
 
     # single artist
     if len(self.artists) == 1: audiof['ARTIST'] = self.artists
@@ -166,17 +173,19 @@ class Track:
   # query and save artwork
   # artwork(500x500)
   def saveArtwork(self):
-    audiof = FLAC(self.file_path)  
-    img = Picture()
-    img.type = 3
-    img.desc = 'artwork'
-    img.data = requests.get(self.artwork_url).content
-    audiof.add_picture(img)
+    if self.file_type == ".flac":
+      audiof = FLAC(self.file_path)  
+    elif self.file_type == ".mp3":
+      audiof = ID3(self.file_path)  
+    img = requests.get(self.artwork_url).content
+    audiof.add(mutagen.id3.APIC(3, 'image/jpeg', 3, 'Front cover', img))
     audiof.save()
 
   def cleanTags(filepath):
-    audiof = FLAC(filepath)
-    audiof.clear_pictures()
+    if filepath.endswith(".flac"):
+      audiof = FLAC(filepath)  
+    elif filepath.endswith(".mp3"):
+      audiof = ID3(filepath)  
     audiof.delete()
     audiof.save()
 
@@ -187,6 +196,8 @@ class Track:
     # linux 
     else:
       filename = filepath.split('/')[-1]
+
+    print("omg:", filepath)
 
     # if is valid beatport file
     if beatport_id_pattern.match(filename):
@@ -201,6 +212,12 @@ class Track:
       track = Track(beatport_id)
       track.file_path = os.path.abspath(filepath)
       track.file_name = filename
+
+      # fill filetype
+      if track.file_name.lower().endswith(".flac"):
+        track.file_type = ".flac"
+      elif track.file_name.lower().endswith(".mp3"):
+        track.file_type = ".mp3"
 
       # try 10 times
       for tries in range(10):
@@ -261,7 +278,7 @@ def argsParserInit():
   return parser
 
 if __name__ == "__main__": 
-  print('beatport_tagger v0.5.0\n')
+  print('welcome beatport_tagger\n')
 
   # input parser
   input_parser = argsParserInit()

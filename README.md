@@ -3,6 +3,8 @@ Beatport Tracktagger
 
 This project is a rework of an old beatport ID tagging tool. It's capable of getting useful tags from beatport and assigning them into audio file.
 
+Files need to have beatport id in front of the filename e.g. 5024319_track.mp3 (that's format from bought beatport tracks)
+
 Installation
 -----
 ```
@@ -33,6 +35,7 @@ Supported formats
 ------
 
 * FLAC
+* MP3
 
 Libraries Used
 -----
@@ -42,6 +45,5 @@ Libraries Used
 
 TODO
 -----
-* more audio formats
 * website UI
 
