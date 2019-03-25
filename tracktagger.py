@@ -20,9 +20,7 @@ from pathlib import Path
 
 num_worker_threads=20
 
-# TODO: wont run for single file
-
-# TODO: get working directory from program location or input source folder, instead of current working dir
+# TODO: add option for recursive
 
 class Track:
   json_database = []
@@ -51,7 +49,7 @@ class Track:
     try:
       page = requests.get('https://www.beatport.com/track/aa/' + self.beatport_id)
     except Exception as e:
-      print(f"Error cannot get track info!")
+      print(f"** error cannot get track info!")
       sys.exit(1)
     return html.fromstring(page.content)
 
@@ -77,7 +75,7 @@ class Track:
     self.artwork_url = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/a/img').pop().attrib['src']
 
   def printTrackInfo(self):
-    print ('Track: ', end='')
+    print ('track: ', end='')
     x = 1
     for artist in self.artists:
       print(artist, end='')
@@ -267,7 +265,7 @@ def argsParserInit():
   return parser
 
 if __name__ == "__main__": 
-  print('welcome beatport_tagger\n')
+  print('welcome beatport_tagger')
 
   # input parser
   input_parser = argsParserInit()
@@ -280,10 +278,10 @@ if __name__ == "__main__":
 
   # load existing db
   if isfile(args.load_db):
-    print('Database found! Loading data...')
+    print('\n** database found! Loading data...')
     Track.openDatabaseJSON(args.load_db)
     Track.loadTracks()
-    print(f'Number of tracks in db: {len(Track.database)}' )
+    print(f'** number of tracks in db: {len(Track.database)}' )
 
   # scan for flac files
   beatport_id_pattern = re.compile('^[0-9]+[_]')
@@ -291,13 +289,13 @@ if __name__ == "__main__":
 
   # get tags from beatport
   if args.sync:
-    print('\nGetting tags from beatport')
+    print('\n** getting tags from beatport')
     Track.processFiles(work_files)
     Track.saveDatabaseJSON('tracks.db')
 
   # tag audio files
   if args.tag_files: 
-    print('\nUpdating audio tags...')
+    print('\n** updating audio tags...')
     i = 1
     for k, v in Track.database.items():
       # for scanned files only
@@ -308,17 +306,17 @@ if __name__ == "__main__":
 
   # clean file tags
   if args.clean_tags:
-    print("\nClearing tags")
+    print("\n** clearing tags")
     for idx, f in enumerate(work_files):
       print(f'{idx+1}/{len(work_files)} - {f}')
       Track.cleanTags(f)
 
   # save artwork
   if args.artwork:
-    print("\nSaving artwork")
+    print("\n** saving artwork")
     for idx, (k, v) in enumerate(Track.database.items()):
       if "file_path" in v.__dict__:
         print(f'{idx+1}/{Track.track_count} - {v.file_name}')
         v.saveArtwork()
 
-  print('All done')
+  print('\n** all done')
