@@ -49,6 +49,7 @@ class Track:
     try:
       page = requests.get('https://www.beatport.com/track/aa/' + self.beatport_id)
     except Exception as e:
+      print(e)
       print(f"** error cannot get track info!")
       sys.exit(1)
     return html.fromstring(page.content)
