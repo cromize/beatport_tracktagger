@@ -8,7 +8,14 @@ Files need to have beatport id in front of the filename e.g. 5024319_track.mp3 (
 Installation
 -----
 ```
+# install dependencies
 pip3 install lxml requests mutagen
+
+# clone this project
+git clone https://github.com/cromize/beatport_tracktagger.git
+
+# run
+./tracktagger.py -t -s -a -i some/path
 ```
 
 Usage
@@ -22,6 +29,9 @@ Usage
 
 # save artwork from beatport (500x500)
 ./tracktagger.py -a
+
+# clean all tags with artwork
+./tracktagger.py -c
 
 # get tags and artwork from beatport and update local files
 ./tracktagger.py -t -s -a
