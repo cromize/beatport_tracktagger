@@ -119,11 +119,12 @@ class Track:
   def scanFiles(src):
     filetypes = '.flac', '.mp3'
     outputFiles = []
-    # single file
-    if Path(src).is_file():
+    if Path(src).is_file():           # single file
       files = [Path(src)]
-    else:
+    elif args.recursive:              # recursive 
       files = Path(src).glob('**/*')
+    else:
+      files = Path(src).glob('*')     # input folder
 
     # for every file that matches filetype and beatport id in db:
     #   assing scanned path to db
@@ -263,6 +264,7 @@ def argsParserInit():
   parser.add_argument('-c', '--clean-tags', action='store_true', help='clean tags in audio files')
   parser.add_argument('-v', '--verbose', action='store_true', help='verbose output')
   parser.add_argument('-a', '--artwork', action='store_true', help='update track artwork')
+  parser.add_argument('-r', '--recursive', action='store_true', help='run recursive')
   parser.add_argument('-i', '--input', help='specify input', default='')
   parser.add_argument('--save-db', help='save tags to database', default='tracks.db')
   parser.add_argument('--load-db', help='load tags from database', default='tracks.db')

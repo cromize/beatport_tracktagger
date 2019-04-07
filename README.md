@@ -5,6 +5,8 @@ This project is a rework of an old beatport ID tagging tool. It's capable of get
 
 Files need to have beatport id in front of the filename e.g. 5024319_track.mp3 (that's format from bought beatport tracks)
 
+Dependency: Python3
+
 Installation
 -----
 ```
@@ -33,11 +35,14 @@ Usage
 # clean all tags with artwork
 ./tracktagger.py -c
 
+# run recursively
+./tracktagger.py -r
+
 # get tags and artwork from beatport and update local files
 ./tracktagger.py -t -s -a
 
 # run from supplied path (including sub-folders)
-./tracktagger.py -t -s -a -i some/path
+./tracktagger.py -t -s -a -r -i some/path
 
 ```
 
