@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
+import threading
 import argparse
 import requests
-import json
 import mutagen
-import glob
-import re
-import sys
-import os
-import threading
 import queue
+import json
+import glob
+import sys
+import re
+import os
 
-from lxml import html
-from mutagen.mp3 import MP3
-from mutagen.id3 import ID3
 from mutagen.easyid3 import EasyID3
 from mutagen.flac import Picture, FLAC
+from mutagen.mp3 import MP3
+from mutagen.id3 import ID3
 from os.path import isfile
 from pathlib import Path
+from lxml import html
 
 num_worker_threads=20
 
@@ -54,6 +54,7 @@ class Track:
       sys.exit(1)
     return html.fromstring(page.content)
 
+  # get tags using beatport id
   def getTags(self):
     tree = self.queryPage()
     artistCount = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a')
@@ -78,7 +79,7 @@ class Track:
   def printTrackInfo(self):
     print ('track: ', end='')
     x = 1
-    for artist in self.artists:
+    for artist in self.artists:   # for multiple artist pretty print
       print(artist, end='')
       if len(self.artists) > 1 and x < len(self.artists):
         print (', ', end='')
@@ -102,7 +103,7 @@ class Track:
   def saveDatabaseJSON(src):
     with open(src, 'w') as f:
       for k, v in Track.database.items():
-        import copy
+        import copy       # raw object copy, to make true duplicate
         vv = copy.copy(v) 
         if "file_path" in vv.__dict__:
           del vv.__dict__["file_path"]
@@ -124,7 +125,8 @@ class Track:
     else:
       files = Path(src).glob('**/*')
 
-    # if suffix matches filetype
+    # for every file that matches filetype and beatport id in db:
+    #   assing scanned path to db
     for f in files:
       if Path(f).suffix in filetypes: 
         if beatport_id_pattern.match(Path(f).name):
@@ -140,6 +142,7 @@ class Track:
       return True
     return False
 
+  # update tags in valid scanned files
   def fileTagsUpdate(self):
     path = self.file_path
     if Path(self.file_name).suffix == ".flac":
@@ -266,7 +269,7 @@ def argsParserInit():
   return parser
 
 if __name__ == "__main__": 
-  print('welcome beatport_tagger')
+  print('*** welcome beatport_tagger ***')
 
   # input parser
   input_parser = argsParserInit()
@@ -279,7 +282,7 @@ if __name__ == "__main__":
 
   # load existing db
   if isfile(args.load_db):
-    print('\n** database found! Loading data...')
+    print('\n** database found! loading data...')
     Track.openDatabaseJSON(args.load_db)
     Track.loadTracks()
     print(f'** number of tracks in db: {len(Track.database)}' )
