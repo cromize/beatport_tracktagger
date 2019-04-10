@@ -18,9 +18,7 @@ from os.path import isfile
 from pathlib import Path
 from lxml import html
 
-num_worker_threads=20
-
-# TODO: add option for recursive
+num_worker_threads = 20
 
 class Track:
   json_database = []
@@ -32,6 +30,7 @@ class Track:
   track_count = 0
 
   def __init__(self, beatport_id = 0):
+    # filepath is assigned after being scanned
     self.beatport_id = beatport_id
     self.artists = []
     self.title = ''
@@ -45,7 +44,7 @@ class Track:
     self.label = ''
     self.file_name = ''
 
-  def queryPage(self):
+  def queryTrackPage(self):
     try:
       page = requests.get('https://www.beatport.com/track/aa/' + self.beatport_id)
     except Exception as e:
@@ -54,27 +53,44 @@ class Track:
       sys.exit(1)
     return html.fromstring(page.content)
 
+  def queryTrackSearch():
+    from html import escape
+    name = escape("Hackler & Kuch the crow")
+    page = requests.get(f'https://www.beatport.com/search/tracks?per-page=150&q={name}&page=1')
+    page_count = len(html.fromstring(page.content).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/div[3]/div[1]/div/*'))
+    artists = html.fromstring(page.content).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/ul/*')
+    artist_count = len(artists)
+
+    # TODO: iterate all pages --> page_count
+    for artist in artists:
+      title = artist.find_class("buk-track-primary-title").pop().text
+      remixer = artist.find_class("buk-track-remixed").pop().text
+      beatport_id = int(artist.get('data-ec-id'))
+      # TODO: 1. lets make an instance of Track and assign retrieved values above
+      #       2. compare retrieved values with scanned track from local 
+      #       3. retrieve whole info using beatport id
+
   # get tags using beatport id
-  def getTags(self):
-    tree = self.queryPage()
-    artistCount = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a')
+  def getTags(self, page):
+    page = self.queryTrackPage()
+    artistCount = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a')
     artistCount = len(artistCount)
 
     for artist in range(1, artistCount + 1):
-      path = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a[' + str(artist) + ']/text()')
+      path = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a[' + str(artist) + ']/text()')
       self.artists.append(path.pop())
 
     # Get info from beatport
-    self.title = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[1]/div[1]/h1[1]/text()').pop()
-    self.remixer = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[1]/div[1]/h1[2]/text()').pop()
-    self.length = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[1]/span[2]/text()').pop()
-    self.released = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[2]/span[2]/text()').pop()
-    self.bpm = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[3]/span[2]/text()').pop()
-    self.key = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[4]/span[2]/text()').pop()
-    self.genre = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[5]/span[2]/a/text()').pop()
-    self.label = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[6]/span[2]/a/text()').pop()
-    self.album = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/@data-ec-name').pop()
-    self.artwork_url = tree.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/a/img').pop().attrib['src']
+    self.title = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[1]/div[1]/h1[1]/text()').pop()
+    self.remixer = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[1]/div[1]/h1[2]/text()').pop()
+    self.length = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[1]/span[2]/text()').pop()
+    self.released = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[2]/span[2]/text()').pop()
+    self.bpm = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[3]/span[2]/text()').pop()
+    self.key = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[4]/span[2]/text()').pop()
+    self.genre = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[5]/span[2]/a/text()').pop()
+    self.label = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[6]/span[2]/a/text()').pop()
+    self.album = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/@data-ec-name').pop()
+    self.artwork_url = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/a/img').pop().attrib['src']
 
   def printTrackInfo(self):
     print ('track: ', end='')
@@ -123,8 +139,8 @@ class Track:
       files = [Path(src)]
     elif args.recursive:              # recursive 
       files = Path(src).glob('**/*')
-    else:
-      files = Path(src).glob('*')     # input folder
+    else:                             # input folder
+      files = Path(src).glob('*')     
 
     # for every file that matches filetype and beatport id in db:
     #   assing scanned path to db
@@ -272,6 +288,8 @@ def argsParserInit():
 
 if __name__ == "__main__": 
   print('*** welcome beatport_tagger ***')
+  Track.queryTrackSearch()
+  sys.exit(0)
 
   # input parser
   input_parser = argsParserInit()
