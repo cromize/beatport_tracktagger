@@ -18,6 +18,8 @@ from os.path import isfile
 from pathlib import Path
 from lxml import html
 
+# TODO: make musical key retrieval work
+
 num_worker_threads = 20
 
 class Track:
@@ -53,22 +55,37 @@ class Track:
       sys.exit(1)
     return html.fromstring(page.content)
 
-  def queryTrackSearch():
+  # TODO: 1. lets make an instance of Track and assign retrieved values above
+  #       2. compare retrieved values with scanned track from local 
+  #       3. retrieve whole info using beatport id
+  def queryTrackSearch(qartist, qtitle, qremixer):
     from html import escape
-    name = escape("Hackler & Kuch the crow")
-    page = requests.get(f'https://www.beatport.com/search/tracks?per-page=150&q={name}&page=1')
+    query = escape(f"{qartist} {qtitle} {qremixer}")
+    page = requests.get(f'https://www.beatport.com/search/tracks?per-page=150&q={query}&page=1')
     page_count = len(html.fromstring(page.content).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/div[3]/div[1]/div/*'))
-    artists = html.fromstring(page.content).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/ul/*')
-    artist_count = len(artists)
+    if page_count == 0:
+      page_count = 1
 
-    # TODO: iterate all pages --> page_count
-    for artist in artists:
-      title = artist.find_class("buk-track-primary-title").pop().text
-      remixer = artist.find_class("buk-track-remixed").pop().text
-      beatport_id = int(artist.get('data-ec-id'))
-      # TODO: 1. lets make an instance of Track and assign retrieved values above
-      #       2. compare retrieved values with scanned track from local 
-      #       3. retrieve whole info using beatport id
+    # for every result page
+    tracks = []
+    for page_num in range(1, page_count):
+      page = requests.get(f'https://www.beatport.com/search/tracks?per-page=150&q={query}&page={page_num}')
+      rtracks = html.fromstring(page.content).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/ul/*')
+      # for every track in result page
+      for rtrack in rtracks:
+        track = Track(0)
+        rartists = []
+        rartists_cont = rtrack.find_class("buk-track-artists").pop()
+        # get all artists of track
+        for it in rartists_cont.iterchildren():
+          rartists.append(it.text)
+        # assign tags into new Track object
+        track.artists = rartists
+        track.title = rtrack.find_class("buk-track-primary-title").pop().text
+        track.remixer = rtrack.find_class("buk-track-remixed").pop().text
+        track.beatport_id = int(rtrack.get('data-ec-id'))
+        tracks.append(track)
+    return tracks
 
   # get tags using beatport id
   def getTags(self, page):
@@ -80,7 +97,7 @@ class Track:
       path = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a[' + str(artist) + ']/text()')
       self.artists.append(path.pop())
 
-    # Get info from beatport
+    # get info from beatport
     self.title = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[1]/div[1]/h1[1]/text()').pop()
     self.remixer = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[1]/div[1]/h1[2]/text()').pop()
     self.length = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[1]/span[2]/text()').pop()
@@ -119,10 +136,10 @@ class Track:
   def saveDatabaseJSON(src):
     with open(src, 'w') as f:
       for k, v in Track.database.items():
-        import copy       # raw object copy, to make true duplicate
+        import copy                      # raw object copy, to make true duplicate
         vv = copy.copy(v) 
         if "file_path" in vv.__dict__:
-          del vv.__dict__["file_path"]
+          del vv.__dict__["file_path"]   # we won't store file_path
         track_json = json.dumps(vv.__dict__)
         f.write(track_json + '\n')
 
@@ -212,11 +229,9 @@ class Track:
 
   def addTrackToDatabase(filepath):
     filename = Path(filepath).name
-
     # if is valid beatport file
     if beatport_id_pattern.match(filename):
       beatport_id = beatport_id_pattern.match(filename).group()[:-1]
-
       if Track.trackInDB(beatport_id):
         Track.processing_iterator += 1
         print(f'{Track.processing_iterator}/{Track.track_count} - (Already in DB) {filename}')
@@ -238,10 +253,8 @@ class Track:
       Track.processing_iterator += 1
       Track.database[track.beatport_id] = track
       print(f"{Track.processing_iterator}/{Track.track_count} - {track.file_name}") 
-
       if args.verbose:
         track.printTrackInfo()
-
     return Track.processing_iterator
 
   # add all valid files to database
@@ -288,7 +301,7 @@ def argsParserInit():
 
 if __name__ == "__main__": 
   print('*** welcome beatport_tagger ***')
-  Track.queryTrackSearch()
+  res = Track.queryTrackSearch("Hackler & Kuch", "the crow", "original mix")
   sys.exit(0)
 
   # input parser
