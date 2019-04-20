@@ -196,13 +196,11 @@ class Track:
     tr.file_name = Path(path).name
     try:
       tr.artists = f['ARTIST']
-    except:
-      tr.artists = []
-
-    try:
       tr.title = f['TITLE'].pop().split(' (')[0]
-    except:
-      tr.title = ""
+    except Exception as e:
+      print("** error cannot match file without artist or title")
+      print("** skipping")
+      return
 
     try:
       tr.remixer = f['TITLE'][0].split('(')[1].split(')')[0]
@@ -370,10 +368,9 @@ if __name__ == "__main__":
   if args.fuzzy:
     for f in work_files:
       tr = Track.scrapeFileAttrib(f)
-      res = Track.queryTrackSearch(tr)
-      match_id = Track.fuzzyTrackMatch(res, tr)
-      tr.printTrackInfo()
-      print(f"{tr.file_name} - {match_id}")
+      if tr:
+        res = Track.queryTrackSearch(tr)
+        match_id = Track.fuzzyTrackMatch(res, tr)
   else:
     work_files = Track.scanBeatportID(work_files)
 
