@@ -1,17 +1,19 @@
 Beatport Tracktagger
 ======
 
-This project is a rework of an old beatport ID tagging tool. It's capable of getting useful tags from beatport and assigning them into audio file.
+This project is a rework of an old beatport ID tagging tool. It's capable of getting useful tags from beatport and assigning them into audio file using fuzzy matching.
 
-Files need to have beatport id in front of the filename e.g. 5024319_track.mp3 (that's format from bought beatport tracks)
+Even though it's able to tag files only using title and artist in attributes, tagger works best with beatport id in front of the filename e.g. 5024319_track.mp3 (that's format from bought beatport tracks).
 
-Dependency: Python3
+Fuzzy matching uses probabilities, instead of exact 'yes' or 'no' matching. It can return false match, when info is not accurate enough. It's also possible it will return correct info but from different release, because of re-release or multi-label release.
+
+Dependency: newest Python 3
 
 Installation
 -----
 ```
 # install dependencies
-pip3 install lxml requests mutagen
+pip3 install lxml requests mutagen fuzzywuzzy
 
 # clone this project
 git clone https://github.com/cromize/beatport_tracktagger.git
@@ -38,11 +40,14 @@ Usage
 # run recursively
 ./tracktagger.py -r
 
+# scrape info from file and match using fuzzy matching
+./tracktagger.py -z
+
 # get tags and artwork from beatport and update local files
 ./tracktagger.py -t -s -a
 
-# run from supplied path (including sub-folders)
-./tracktagger.py -t -s -a -r -i some/path
+# run from supplied path with all possible options (including sub-folders)
+./tracktagger.py -tsari some/path
 
 ```
 
@@ -57,8 +62,10 @@ Libraries Used
 * requests for pulling webpage
 * lxml for parsing info
 * mutagen for assigning tags to files
+* fuzzywuzzy for fuzzy string matching
 
 TODO
 -----
+* tests
 * website UI
 
