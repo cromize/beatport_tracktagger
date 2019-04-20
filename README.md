@@ -13,7 +13,7 @@ Installation
 -----
 ```
 # install dependencies
-pip3 install lxml requests mutagen fuzzywuzzy
+pip3 install lxml urllib3 mutagen fuzzywuzzy
 
 # clone this project
 git clone https://github.com/cromize/beatport_tracktagger.git
@@ -59,7 +59,7 @@ Supported formats
 
 Libraries Used
 -----
-* requests for pulling webpage
+* urllib3 for pulling webpage
 * lxml for parsing info
 * mutagen for assigning tags to files
 * fuzzywuzzy for fuzzy string matching

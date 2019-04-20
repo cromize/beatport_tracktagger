@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import threading
 import argparse
-import requests
 import mutagen
+import urllib3
 import queue
 import json
 import sys
@@ -17,6 +17,8 @@ from pathlib import Path
 from lxml import html
 
 # TODO: make musical key retrieval work
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 num_worker_threads = 20
 
@@ -57,27 +59,26 @@ class Track:
 
   def queryTrackPage(self):
     try:
-      page = requests.get('https://www.beatport.com/track/aa/' + self.beatport_id)
+      page = http.request('GET', 'https://www.beatport.com/track/aa/' + self.beatport_id)
     except Exception as e:
       print(e)
       print(f"** error cannot get track info!")
       sys.exit(1)
-    return html.fromstring(page.content)
+    return html.fromstring(page.data)
 
   # query track using beatport search engine
   def queryTrackSearch(track):
-    from html import escape
-    query = escape(f"{' '.join(track.artists)} {track.title} {track.remixer}")
-    page = requests.get(f'https://www.beatport.com/search/tracks?per-page=150&q={query}&page=1')
-    page_count = len(html.fromstring(page.content).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/div[3]/div[1]/div/*'))
+    from urllib import parse
+    query = parse.quote(f"{' '.join(track.artists)} {track.title} {track.remixer}")
+    page = http.request('GET', f'https://www.beatport.com/search/tracks?per-page=20&q={query}&page=1')
+    page_count = len(html.fromstring(page.data).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/div[3]/div[1]/div/*'))
     if page_count == 0:
       page_count = 1
 
-    tracks = dict()
-    page_num = 1
     # should we query all pages? result should be at first page if relevant
-    page = requests.get(f'https://www.beatport.com/search/tracks?per-page=150&q={query}&page={page_num}')
-    rtracks = html.fromstring(page.content).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/ul/*')
+    # 20 per-page
+    tracks = dict()
+    rtracks = html.fromstring(page.data).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/ul/*')
     
     # for every track in result page
     for rtrack in rtracks:
@@ -159,7 +160,6 @@ class Track:
 
   def scanFiletype(src):
     filetypes = '.flac', '.mp3'
-    outputFiles = []
     if Path(src).is_file():           # single file
       files = [Path(src)]
     elif args.recursive:              # recursive 
@@ -176,13 +176,13 @@ class Track:
 
   # get path of scanned files with beatport id in filename
   def scanBeatportID(files):
-    # for every file that matches beatport id in db:
-    #   assing scanned path to db
     outputFiles = []
     for f in files:
+      # match beatport id in Track:db
       if beatport_id_pattern.match(Path(f).name):
         beatport_id = beatport_id_pattern.match(Path(f).name).group()[:-1]
         if beatport_id in Track.db.keys():
+          # assing scanned path to db
           Track.db[beatport_id].file_path = Path(f)
         outputFiles.append(Path(f))
     Track.track_count = len(outputFiles)
@@ -197,14 +197,16 @@ class Track:
     tr = Track(0)
     tr.file_name = Path(path).name
     tr.file_path = Path(path)
+    # extract artist and title
     try:
       tr.artists = f['ARTIST']
       tr.title = f['TITLE'].pop().split(' (')[0]
-    except Exception as e:
+    except:
       print("** error cannot match file without artist or title")
       print("** skipping")
       return
 
+    # try to extract remixer
     try:
       tr.remixer = f['TITLE'][0].split('(')[1].split(')')[0]
     except:
@@ -246,17 +248,17 @@ class Track:
   # query and save artwork
   # artwork(500x500)
   def saveArtwork(self):
-    img = requests.get(self.artwork_url).content
+    dl_img = http.request('GET', self.artwork_url).data
     if Path(self.file_name).suffix == ".flac":
       audiof = FLAC(self.file_path)  
       img = Picture()
       img.type = 3
       img.desc = 'artwork'
-      img.data = requests.get(self.artwork_url).content
+      img.data = dl_img
       audiof.add_picture(img)
     elif Path(self.file_name).suffix == ".mp3":
       audiof = ID3(self.file_path)  
-      audiof.add(mutagen.id3.APIC(3, 'image/jpeg', 3, 'Front cover', img))
+      audiof.add(mutagen.id3.APIC(3, 'image/jpeg', 3, 'Front cover', dl_img))
     audiof.save()
 
   def cleanTags(filepath):
@@ -346,6 +348,7 @@ def argsParserInit():
 
 if __name__ == "__main__": 
   print('*** welcome beatport_tagger ***')
+  http = urllib3.PoolManager()
 
   # input parser
   input_parser = argsParserInit()
@@ -358,7 +361,7 @@ if __name__ == "__main__":
 
   # load existing db
   if isfile(args.load_db):
-    print('\n** database found! loading data...')
+    print('\n** database found! loading data')
     Track.opendbJSON(args.load_db)
     Track.loadTracks()
     print(f'** number of tracks in db: {len(Track.db)}' )
@@ -369,8 +372,9 @@ if __name__ == "__main__":
 
   # query beatport id using fuzzy name matching
   if args.fuzzy:
+    print("\n** getting tags using fuzzy matching")
     for i, f in enumerate(work_files):
-      print(f"{i}/{len(work_files)} - {f}")
+      print(f"{i+1}/{len(work_files)} - {f}")
       buf = []
       tr = Track.scrapeFileAttrib(f)
       if tr:
@@ -379,6 +383,7 @@ if __name__ == "__main__":
         tr.beatport_id = match_id
         Track.db[match_id] = tr
         buf.append(f)
+        Track.track_count += 1
     # collect valid files
     work_files = buf
   else:
@@ -393,17 +398,15 @@ if __name__ == "__main__":
   # tag audio files
   if args.tag_files: 
     print('\n** updating audio tags...')
-    i = 1
-    for k, v in Track.db.items():
+    for i, (k, v) in enumerate(Track.db.items()):
       # for scanned files only
       if "file_path" in v.__dict__:
-        print(f'{i}/{Track.track_count} - {v.file_name}')
+        print(f'{i+1}/{Track.track_count} - {v.file_name}')
         v.fileTagsUpdate()
-        i += 1
 
   # clean file tags
   if args.clean_tags:
-    print("\n** clearing tags")
+    print("\n** cleaning tags")
     for idx, f in enumerate(work_files):
       print(f'{idx+1}/{len(work_files)} - {f}')
       Track.cleanTags(f)
@@ -411,9 +414,10 @@ if __name__ == "__main__":
   # save artwork
   if args.artwork:
     print("\n** saving artwork")
-    for idx, (k, v) in enumerate(Track.db.items()):
+    for i, (k, v) in enumerate(Track.db.items()):
       if "file_path" in v.__dict__:
-        print(f'{idx+1}/{Track.track_count} - {v.file_name}')
+        print(f'{i+1}/{Track.track_count} - {v.file_name}')
         v.saveArtwork()
 
   print('\n** all done')
+
