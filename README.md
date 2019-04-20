@@ -1,9 +1,9 @@
 Beatport Tracktagger
 ======
 
-This project is a rework of an old beatport ID tagging tool. It's capable of getting useful tags from beatport and assigning them into audio file using fuzzy matching.
+This project is a rework of an old beatport ID tagging tool. It's capable of getting useful tags from beatport (`-s`) and assigning them into audio file (`-t`) using fuzzy matching.
 
-Even though it's able to tag files only using title and artist in attributes, tagger works best with beatport id in front of the filename e.g. 5024319_track.mp3 (that's format from bought beatport tracks).
+Even though it's able to tag files only using title and artist in attributes (`-z`), tagger works best with beatport id in front of the filename e.g. 5024319_track.mp3 (that's format from bought beatport tracks).
 
 Fuzzy matching uses probabilities, instead of exact 'yes' or 'no' matching. It can return false match, when info is not accurate enough. It's also possible it will return correct info but from different release, because of re-release or multi-label release.
 
