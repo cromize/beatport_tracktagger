@@ -73,25 +73,26 @@ class Track:
     if page_count == 0:
       page_count = 1
 
-    # for every result page
     tracks = dict()
-    for page_num in range(1, page_count+1):
-      page = requests.get(f'https://www.beatport.com/search/tracks?per-page=150&q={query}&page={page_num}')
-      rtracks = html.fromstring(page.content).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/ul/*')
-      # for every track in result page
-      for rtrack in rtracks:
-        track = Track(0)
-        rartists = []
-        rartists_cont = rtrack.find_class("buk-track-artists").pop()
-        # get all artists of track
-        for it in rartists_cont.iterchildren():
-          rartists.append(it.text)
-        # assign tags into new Track object
-        track.artists = rartists
-        track.title = rtrack.find_class("buk-track-primary-title").pop().text
-        track.remixer = rtrack.find_class("buk-track-remixed").pop().text
-        track.beatport_id = int(rtrack.get('data-ec-id'))
-        tracks[track.beatport_id] = track
+    page_num = 1
+    # should we query all pages? result should be at first page if relevant
+    page = requests.get(f'https://www.beatport.com/search/tracks?per-page=150&q={query}&page={page_num}')
+    rtracks = html.fromstring(page.content).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/ul/*')
+    
+    # for every track in result page
+    for rtrack in rtracks:
+      track = Track(0)
+      rartists = []
+      rartists_cont = rtrack.find_class("buk-track-artists").pop()
+      # get all artists of track
+      for it in rartists_cont.iterchildren():
+        rartists.append(it.text)
+      # assign tags into new Track object
+      track.artists = rartists
+      track.title = rtrack.find_class("buk-track-primary-title").pop().text
+      track.remixer = rtrack.find_class("buk-track-remixed").pop().text
+      track.beatport_id = int(rtrack.get('data-ec-id'))
+      tracks[track.beatport_id] = track
     return tracks
 
   # get tags using beatport id
@@ -173,6 +174,7 @@ class Track:
         out.append(f)
     return out
 
+  # get path of scanned files with beatport id in filename
   def scanBeatportID(files):
     # for every file that matches beatport id in db:
     #   assing scanned path to db
@@ -194,6 +196,7 @@ class Track:
 
     tr = Track(0)
     tr.file_name = Path(path).name
+    tr.file_path = Path(path)
     try:
       tr.artists = f['ARTIST']
       tr.title = f['TITLE'].pop().split(' (')[0]
@@ -371,8 +374,12 @@ if __name__ == "__main__":
       if tr:
         res = Track.queryTrackSearch(tr)
         match_id = Track.fuzzyTrackMatch(res, tr)
+        tr.beatport_id = match_id
+        Track.db[match_id] = tr
   else:
     work_files = Track.scanBeatportID(work_files)
+
+  print(Track.db)
 
   # get tags from beatport
   if args.sync:
