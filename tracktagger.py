@@ -21,8 +21,8 @@ from lxml import html
 num_worker_threads = 20
 
 class Track:
-  json_database = []
-  database = dict()
+  json_db = []
+  db = dict()
   
   processing_iterator = 0
 
@@ -140,13 +140,13 @@ class Track:
            f'Beatport ID: {self.beatport_id}\n')
     print ('')
     
-  def openDatabaseJSON(src):
+  def opendbJSON(src):
     with open(src, 'r') as f:
-      Track.json_database = f.readlines()
+      Track.json_db = f.readlines()
 
-  def saveDatabaseJSON(src):
+  def savedbJSON(src):
     with open(src, 'w') as f:
-      for k, v in Track.database.items():
+      for k, v in Track.db.items():
         import copy                      # raw object copy, to make true duplicate
         vv = copy.copy(v) 
         if "file_path" in vv.__dict__:
@@ -155,12 +155,12 @@ class Track:
         f.write(track_json + '\n')
 
   def loadTracks():
-    for track in Track.json_database:
+    for track in Track.json_db:
       track_object = Track()
       track_object.__dict__ = json.loads(track)
-      Track.database[track_object.beatport_id] = track_object
+      Track.db[track_object.beatport_id] = track_object
 
-  def scanFiles(src):
+  def scanFiletype(src):
     filetypes = '.flac', '.mp3'
     outputFiles = []
     if Path(src).is_file():           # single file
@@ -170,20 +170,28 @@ class Track:
     else:                             # input folder
       files = Path(src).glob('*')     
 
-    # for every file that matches filetype and beatport id in db:
-    #   assing scanned path to db
+    # match filetype
+    out = []
     for f in files:
       if Path(f).suffix in filetypes: 
-        if beatport_id_pattern.match(Path(f).name):
-          beatport_id = beatport_id_pattern.match(Path(f).name).group()[:-1]
-          if beatport_id in Track.database.keys():
-            Track.database[beatport_id].file_path = Path(f)
-          outputFiles.append(Path(f))
-          Track.track_count += 1
+        out.append(f)
+    return out
+
+  def scanBeatportID(files):
+    # for every file that matches beatport id in db:
+    #   assing scanned path to db
+    outputFiles = []
+    for f in files:
+      if beatport_id_pattern.match(Path(f).name):
+        beatport_id = beatport_id_pattern.match(Path(f).name).group()[:-1]
+        if beatport_id in Track.db.keys():
+          Track.db[beatport_id].file_path = Path(f)
+        outputFiles.append(Path(f))
+    Track.track_count = len(outputFiles)
     return outputFiles
 
   def trackInDB(beatport_id):
-    if beatport_id in Track.database:
+    if beatport_id in Track.db:
       return True
     return False
 
@@ -238,7 +246,7 @@ class Track:
       audiof.delete()
     audiof.save()
 
-  def addTrackToDatabase(filepath):
+  def addTrackToDB(filepath):
     filename = Path(filepath).name
     # if is valid beatport file
     if beatport_id_pattern.match(filename):
@@ -262,7 +270,7 @@ class Track:
           pass
 
       Track.processing_iterator += 1
-      Track.database[track.beatport_id] = track
+      Track.db[track.beatport_id] = track
       print(f"{Track.processing_iterator}/{Track.track_count} - {track.file_name}") 
       if args.verbose:
         track.printTrackInfo()
@@ -273,7 +281,7 @@ class Track:
     q = queue.Queue()
     threads = []
     for i in range(num_worker_threads):
-      t = threading.Thread(target=Track.worker, args=(Track.addTrackToDatabase,q))
+      t = threading.Thread(target=Track.worker, args=(Track.addTrackToDB,q))
       t.start()
       threads.append(t)
 
@@ -305,6 +313,7 @@ def argsParserInit():
   parser.add_argument('-v', '--verbose', action='store_true', help='verbose output')
   parser.add_argument('-a', '--artwork', action='store_true', help='update track artwork')
   parser.add_argument('-r', '--recursive', action='store_true', help='run recursive')
+  parser.add_argument('-z', '--fuzzy', action='store_true', help='try to fuzzy name match')
   parser.add_argument('-i', '--input', help='specify input', default='')
   parser.add_argument('--save-db', help='save tags to database', default='tracks.db')
   parser.add_argument('--load-db', help='load tags from database', default='tracks.db')
@@ -314,10 +323,8 @@ if __name__ == "__main__":
   print('*** welcome beatport_tagger ***')
   tmp = "Hackler & Kuch", "the crow", "original mix"
   tmp = "Hackler & Kuch", "R6", ""
-  res = Track.queryTrackSearch(*tmp)
   match_id = Track.fuzzyTrackMatch(res, tmp)
   res[match_id].printTrackInfo()
-  sys.exit(0)
 
   # input parser
   input_parser = argsParserInit()
@@ -331,25 +338,34 @@ if __name__ == "__main__":
   # load existing db
   if isfile(args.load_db):
     print('\n** database found! loading data...')
-    Track.openDatabaseJSON(args.load_db)
+    Track.opendbJSON(args.load_db)
     Track.loadTracks()
-    print(f'** number of tracks in db: {len(Track.database)}' )
+    print(f'** number of tracks in db: {len(Track.db)}' )
 
-  # scan for flac files
+  # scan for flac and mp3 files
   beatport_id_pattern = re.compile('^[0-9]+[_]')
-  work_files = Track.scanFiles(args.input)
+  work_files = Track.scanFiletype(args.input)
+
+  # TODO: let's write function for scraping info from untagged files
+  #       fuzzy match after in standardized manner
+
+  # query beatport id using fuzzy name matching
+  if args.fuzzy:
+    pass
+  else:
+    work_files = Track.scanBeatportID(work_files)
 
   # get tags from beatport
   if args.sync:
     print('\n** getting tags from beatport')
     Track.processFiles(work_files)
-    Track.saveDatabaseJSON('tracks.db')
+    Track.savedbJSON('tracks.db')
 
   # tag audio files
   if args.tag_files: 
     print('\n** updating audio tags...')
     i = 1
-    for k, v in Track.database.items():
+    for k, v in Track.db.items():
       # for scanned files only
       if "file_path" in v.__dict__:
         print(f'{i}/{Track.track_count} - {v.file_name}')
@@ -366,7 +382,7 @@ if __name__ == "__main__":
   # save artwork
   if args.artwork:
     print("\n** saving artwork")
-    for idx, (k, v) in enumerate(Track.database.items()):
+    for idx, (k, v) in enumerate(Track.db.items()):
       if "file_path" in v.__dict__:
         print(f'{idx+1}/{Track.track_count} - {v.file_name}')
         v.saveArtwork()
