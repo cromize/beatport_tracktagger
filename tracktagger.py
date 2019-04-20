@@ -48,11 +48,9 @@ class Track:
   def fuzzyTrackMatch(src, template):
     from fuzzywuzzy import process
     from fuzzywuzzy.fuzz import token_sort_ratio
+    template = " ".join(template.artists), template.title, template.remixer
     x = dict()
     for k, v in src.items():
-      # assume it's original mix, when no remixer is supplied
-      if template[2] is "" or None:
-        template = template[0], template[1], "Original Mix"
       x[k] = " ".join((*v.artists, v.title, v.remixer))
     match = process.extractOne(" ".join(template), x, scorer=token_sort_ratio)
     return match[2]
@@ -66,12 +64,10 @@ class Track:
       sys.exit(1)
     return html.fromstring(page.content)
 
-  # TODO: 1. lets make an instance of Track and assign retrieved values above
-  #       2. compare retrieved values with scanned track from local 
-  #       3. retrieve whole info using beatport id
-  def queryTrackSearch(qartist, qtitle, qremixer):
+  # query track using beatport search engine
+  def queryTrackSearch(track):
     from html import escape
-    query = escape(f"{qartist} {qtitle} {qremixer}")
+    query = escape(f"{' '.join(track.artists)} {track.title} {track.remixer}")
     page = requests.get(f'https://www.beatport.com/search/tracks?per-page=150&q={query}&page=1')
     page_count = len(html.fromstring(page.content).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/div[3]/div[1]/div/*'))
     if page_count == 0:
@@ -79,7 +75,7 @@ class Track:
 
     # for every result page
     tracks = dict()
-    for page_num in range(1, page_count):
+    for page_num in range(1, page_count+1):
       page = requests.get(f'https://www.beatport.com/search/tracks?per-page=150&q={query}&page={page_num}')
       rtracks = html.fromstring(page.content).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/ul/*')
       # for every track in result page
@@ -190,6 +186,31 @@ class Track:
     Track.track_count = len(outputFiles)
     return outputFiles
 
+  def scrapeFileAttrib(path):
+    if Path(path).suffix == ".flac":
+      f = FLAC(path)  
+    elif Path(path).suffix == ".mp3":
+      f = EasyID3(path)  
+
+    tr = Track(0)
+    tr.file_name = Path(path).name
+    try:
+      tr.artists = f['ARTIST']
+    except:
+      tr.artists = []
+
+    try:
+      tr.title = f['TITLE'].pop().split(' (')[0]
+    except:
+      tr.title = ""
+
+    try:
+      tr.remixer = f['TITLE'][0].split('(')[1].split(')')[0]
+    except:
+      # assume it's original mix, when no remixer is supplied
+      tr.remixer = "Original Mix"
+    return tr
+
   def trackInDB(beatport_id):
     if beatport_id in Track.db:
       return True
@@ -241,6 +262,7 @@ class Track:
     if Path(filepath).suffix == ".flac":
       audiof = FLAC(filepath)  
       audiof.clear_pictures()
+      audiof.delete()
     elif Path(filepath).suffix == ".mp3":
       audiof = EasyID3(filepath)  
       audiof.delete()
@@ -264,9 +286,11 @@ class Track:
       # try 10 times
       for tries in range(10):
         try:
-          track.getTags()
+          page = track.queryTrackPage()
+          track.getTags(page)
           break
-        except:
+        except Exception as e:
+          print(e)
           pass
 
       Track.processing_iterator += 1
@@ -321,10 +345,6 @@ def argsParserInit():
 
 if __name__ == "__main__": 
   print('*** welcome beatport_tagger ***')
-  tmp = "Hackler & Kuch", "the crow", "original mix"
-  tmp = "Hackler & Kuch", "R6", ""
-  match_id = Track.fuzzyTrackMatch(res, tmp)
-  res[match_id].printTrackInfo()
 
   # input parser
   input_parser = argsParserInit()
@@ -346,12 +366,14 @@ if __name__ == "__main__":
   beatport_id_pattern = re.compile('^[0-9]+[_]')
   work_files = Track.scanFiletype(args.input)
 
-  # TODO: let's write function for scraping info from untagged files
-  #       fuzzy match after in standardized manner
-
   # query beatport id using fuzzy name matching
   if args.fuzzy:
-    pass
+    for f in work_files:
+      tr = Track.scrapeFileAttrib(f)
+      res = Track.queryTrackSearch(tr)
+      match_id = Track.fuzzyTrackMatch(res, tr)
+      tr.printTrackInfo()
+      print(f"{tr.file_name} - {match_id}")
   else:
     work_files = Track.scanBeatportID(work_files)
 
