@@ -5,14 +5,12 @@ import requests
 import mutagen
 import queue
 import json
-import glob
 import sys
 import re
 import os
 
 from mutagen.easyid3 import EasyID3
 from mutagen.flac import Picture, FLAC
-from mutagen.mp3 import MP3
 from mutagen.id3 import ID3
 from os.path import isfile
 from pathlib import Path
@@ -46,6 +44,19 @@ class Track:
     self.label = ''
     self.file_name = ''
 
+  # returns most probable match
+  def fuzzyTrackMatch(src, template):
+    from fuzzywuzzy import process
+    from fuzzywuzzy.fuzz import token_sort_ratio
+    x = dict()
+    for k, v in src.items():
+      # assume it's original mix, when no remixer is supplied
+      if template[2] is "" or None:
+        template = template[0], template[1], "Original Mix"
+      x[k] = " ".join((*v.artists, v.title, v.remixer))
+    match = process.extractOne(" ".join(template), x, scorer=token_sort_ratio)
+    return match[2]
+
   def queryTrackPage(self):
     try:
       page = requests.get('https://www.beatport.com/track/aa/' + self.beatport_id)
@@ -67,7 +78,7 @@ class Track:
       page_count = 1
 
     # for every result page
-    tracks = []
+    tracks = dict()
     for page_num in range(1, page_count):
       page = requests.get(f'https://www.beatport.com/search/tracks?per-page=150&q={query}&page={page_num}')
       rtracks = html.fromstring(page.content).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/ul/*')
@@ -84,7 +95,7 @@ class Track:
         track.title = rtrack.find_class("buk-track-primary-title").pop().text
         track.remixer = rtrack.find_class("buk-track-remixed").pop().text
         track.beatport_id = int(rtrack.get('data-ec-id'))
-        tracks.append(track)
+        tracks[track.beatport_id] = track
     return tracks
 
   # get tags using beatport id
@@ -301,7 +312,11 @@ def argsParserInit():
 
 if __name__ == "__main__": 
   print('*** welcome beatport_tagger ***')
-  res = Track.queryTrackSearch("Hackler & Kuch", "the crow", "original mix")
+  tmp = "Hackler & Kuch", "the crow", "original mix"
+  tmp = "Hackler & Kuch", "R6", ""
+  res = Track.queryTrackSearch(*tmp)
+  match_id = Track.fuzzyTrackMatch(res, tmp)
+  res[match_id].printTrackInfo()
   sys.exit(0)
 
   # input parser
