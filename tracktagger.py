@@ -369,17 +369,20 @@ if __name__ == "__main__":
 
   # query beatport id using fuzzy name matching
   if args.fuzzy:
-    for f in work_files:
+    for i, f in enumerate(work_files):
+      print(f"{i}/{len(work_files)} - {f}")
+      buf = []
       tr = Track.scrapeFileAttrib(f)
       if tr:
         res = Track.queryTrackSearch(tr)
         match_id = Track.fuzzyTrackMatch(res, tr)
         tr.beatport_id = match_id
         Track.db[match_id] = tr
+        buf.append(f)
+    # collect valid files
+    work_files = buf
   else:
     work_files = Track.scanBeatportID(work_files)
-
-  print(Track.db)
 
   # get tags from beatport
   if args.sync:
