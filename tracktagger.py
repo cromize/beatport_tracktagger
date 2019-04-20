@@ -303,16 +303,31 @@ class Track:
         track.printTrackInfo()
     return Track.processing_iterator
 
-  # add all valid files to database
-  def processFiles(files):
+  # multithread add beatport id using fuzzy matching
+  def doFuzzyMatch(f):
+    buf = []
+    Track.processing_iterator += 1
+    print(f"{Track.processing_iterator}/{Track.track_count} - {f}")
+    tr = Track.scrapeFileAttrib(f)
+    if tr:
+      res = Track.queryTrackSearch(tr)
+      match_id = Track.fuzzyTrackMatch(res, tr)
+      tr.beatport_id = match_id
+      Track.db[match_id] = tr
+      buf.append(f)
+    # collect valid files
+    work_files = buf
+
+  def spawnWorkers(method, data):
+    Track.processing_iterator = 0
     q = queue.Queue()
     threads = []
     for i in range(num_worker_threads):
-      t = threading.Thread(target=Track.worker, args=(Track.addTrackToDB,q))
+      t = threading.Thread(target=Track.worker, args=(method,q))
       t.start()
       threads.append(t)
 
-    for f in files:
+    for f in data:
       q.put(f) 
 
     # wait for workers
@@ -348,7 +363,7 @@ def argsParserInit():
 
 if __name__ == "__main__": 
   print('*** welcome beatport_tagger ***')
-  http = urllib3.PoolManager()
+  http = urllib3.PoolManager(num_worker_threads)
 
   # input parser
   input_parser = argsParserInit()
@@ -373,26 +388,15 @@ if __name__ == "__main__":
   # query beatport id using fuzzy name matching
   if args.fuzzy:
     print("\n** getting tags using fuzzy matching")
-    for i, f in enumerate(work_files):
-      print(f"{i+1}/{len(work_files)} - {f}")
-      buf = []
-      tr = Track.scrapeFileAttrib(f)
-      if tr:
-        res = Track.queryTrackSearch(tr)
-        match_id = Track.fuzzyTrackMatch(res, tr)
-        tr.beatport_id = match_id
-        Track.db[match_id] = tr
-        buf.append(f)
-        Track.track_count += 1
-    # collect valid files
-    work_files = buf
+    Track.track_count = len(work_files)
+    Track.spawnWorkers(Track.doFuzzyMatch, work_files)
   else:
     work_files = Track.scanBeatportID(work_files)
 
   # get tags from beatport
   if args.sync:
     print('\n** getting tags from beatport')
-    Track.processFiles(work_files)
+    Track.spawnWorkers(Track.addTrackToDB, work_files)
     Track.savedbJSON('tracks.db')
 
   # tag audio files
