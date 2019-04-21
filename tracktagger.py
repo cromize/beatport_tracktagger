@@ -20,7 +20,7 @@ from lxml import html
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-num_worker_threads = 20
+MAX_WORKERS = 20
 
 class Track:
   json_db = []
@@ -52,6 +52,7 @@ class Track:
     from fuzzywuzzy.fuzz import token_sort_ratio
     template = " ".join(template.artists), template.title, template.remixer
     x = dict()
+    # candidates in src
     for k, v in src.items():
       x[k] = " ".join((*v.artists, v.title, v.remixer))
     match = process.extractOne(" ".join(template), x, scorer=token_sort_ratio)
@@ -75,7 +76,7 @@ class Track:
     if page_count == 0:
       page_count = 1
 
-    # should we query all pages? result should be at first page if relevant
+    # should we query all pages? desired result should be at first page if relevant
     # 20 per-page
     tracks = dict()
     rtracks = html.fromstring(page.data).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/ul/*')
@@ -102,8 +103,9 @@ class Track:
     artistCount = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a')
     artistCount = len(artistCount)
 
+    # could be more artists
     for artist in range(1, artistCount + 1):
-      path = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a[' + str(artist) + ']/text()')
+      path = page.xpath(f'//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a[{str(artist)}]/text()')
       self.artists.append(path.pop())
 
     # get info from beatport
@@ -138,11 +140,11 @@ class Track:
            f'Beatport ID: {self.beatport_id}\n')
     print ('')
     
-  def opendbJSON(src):
+  def loadJSON(src):
     with open(src, 'r') as f:
       Track.json_db = f.readlines()
 
-  def savedbJSON(src):
+  def saveJSON(src):
     with open(src, 'w') as f:
       for k, v in Track.db.items():
         import copy                      # raw object copy, to make true duplicate
@@ -158,6 +160,7 @@ class Track:
       track_object.__dict__ = json.loads(track)
       Track.db[track_object.beatport_id] = track_object
 
+  # return valid filetypes only
   def scanFiletype(src):
     filetypes = '.flac', '.mp3'
     if Path(src).is_file():           # single file
@@ -178,7 +181,7 @@ class Track:
   def scanBeatportID(files):
     outputFiles = []
     for f in files:
-      # match beatport id in Track:db
+      # match beatport id in Track.db
       if beatport_id_pattern.match(Path(f).name):
         beatport_id = beatport_id_pattern.match(Path(f).name).group()[:-1]
         if beatport_id in Track.db.keys():
@@ -316,13 +319,12 @@ class Track:
       Track.db[match_id] = tr
       buf.append(f)
     # collect valid files
-    work_files = buf
 
   def spawnWorkers(method, data):
     Track.processing_iterator = 0
     q = queue.Queue()
     threads = []
-    for i in range(num_worker_threads):
+    for i in range(MAX_WORKERS):
       t = threading.Thread(target=Track.worker, args=(method,q))
       t.start()
       threads.append(t)
@@ -334,7 +336,7 @@ class Track:
     q.join()
     
     # kill workers
-    for i in range(num_worker_threads):
+    for i in range(MAX_WORKERS):
       q.put(None)
     for t in threads:
       t.join() 
@@ -363,7 +365,7 @@ def argsParserInit():
 
 if __name__ == "__main__": 
   print('*** welcome beatport_tagger ***')
-  http = urllib3.PoolManager(num_worker_threads)
+  http = urllib3.PoolManager(MAX_WORKERS)
 
   # input parser
   input_parser = argsParserInit()
@@ -377,7 +379,7 @@ if __name__ == "__main__":
   # load existing db
   if isfile(args.load_db):
     print('\n** database found! loading data')
-    Track.opendbJSON(args.load_db)
+    Track.loadJSON(args.load_db)
     Track.loadTracks()
     print(f'** number of tracks in db: {len(Track.db)}' )
 
@@ -397,7 +399,7 @@ if __name__ == "__main__":
   if args.sync:
     print('\n** getting tags from beatport')
     Track.spawnWorkers(Track.addTrackToDB, work_files)
-    Track.savedbJSON('tracks.db')
+    Track.saveJSON('tracks.db')
 
   # tag audio files
   if args.tag_files: 
