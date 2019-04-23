@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 import argparse
 import urllib3
-import threads
+import core
 import sys
 
 from os.path import isfile
 from track import Track
-from core import Database, scanFiletype
 from lxml import html
+
+# TODO: make single exit function with pretty info print
 
 # TODO: make musical key retrieval work
 
@@ -31,7 +32,7 @@ if __name__ == "__main__":
   print('*** welcome beatport_tagger ***')
 
   # main db
-  db = Database()
+  db = core.Database()
 
   # input parser
   input_parser = argsParserInit()
@@ -49,20 +50,20 @@ if __name__ == "__main__":
     print(f'** number of tracks in db: {len(db.db)}' )
 
   # scan for flac and mp3 files
-  work_files = scanFiletype(args.input, args.recursive)
+  work_files = core.scanFiletype(args.input, args.recursive)
 
   # query beatport id using fuzzy name matching
   if args.fuzzy:
     print("\n** getting tags using fuzzy matching")
     db.track_count = len(work_files)
-    threads.spawnWorkers(threads.doFuzzyMatch, work_files, db)
+    core.spawnWorkers(core.doFuzzyMatch, work_files, db)
   else:
     work_files = db.scanBeatportID(work_files)
 
   # get tags from beatport
   if args.sync:
     print('\n** getting tags from beatport')
-    threads.spawnWorkers(threads.addTrackToDB, work_files, db)
+    core.spawnWorkers(core.addTrackToDB, work_files, db)
     db.saveJSON(args.save_db)
 
   # tag audio files
@@ -80,6 +81,7 @@ if __name__ == "__main__":
     for idx, f in enumerate(work_files):
       print(f'{idx+1}/{len(work_files)} - {f}')
       Track.cleanTags(f)
+    sys.exit(1)
 
   # save artwork
   if args.artwork:
