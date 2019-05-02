@@ -9,7 +9,6 @@ import core
 from pathlib import Path
 
 def filedir():
-  print(Path(__file__).resolve().parent)
   return Path(__file__).resolve().parent
 
 class TestTrackTagger(unittest.TestCase):
@@ -30,13 +29,12 @@ class TestTrackTagger(unittest.TestCase):
     self.assertEqual(tr.file_name, '5850811_2090.mp3')
 
   def test_scanFiletype(self):
-    print(filedir())
     files = core.scanFiletype(filedir()/'data/', False)
     self.assertEqual(files, {Path(filedir()/'data/9348620_take_care.flac'), Path(filedir()/'data/5850811_2090.mp3')})
 
     # recursive
     files = core.scanFiletype(filedir(), True)
-    self.assertEqual(files, {Path(filedir()/'data/9348620_take_care.flac').resolve(), Path(filedir()/'data/5850811_2090.mp3').resolve()})
+    self.assertEqual(files, {Path(filedir()/'data/9348620_take_care.flac'), Path(filedir()/'data/5850811_2090.mp3')})
 
   def test_addTrackToDB(self):
     db = core.Database()

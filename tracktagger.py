@@ -69,11 +69,13 @@ if __name__ == "__main__":
   # tag audio files
   if args.tag_files: 
     print('\n** updating audio tags')
-    for i, (k, v) in enumerate(db.db.items()):
+    i = 0
+    for k, v in db.db.items():
       # for scanned files only
       if "file_path" in v.__dict__:
         print(f'{i+1}/{db.track_count} - {v.file_name}')
         v.fileTagsUpdate()
+        i += 1
 
   # clean file tags
   if args.clean_tags:
@@ -86,10 +88,12 @@ if __name__ == "__main__":
   # save artwork
   if args.artwork:
     print("\n** saving artwork")
-    for i, (k, v) in enumerate(db.db.items()):
+    i = 0
+    for k, v in db.db.items():
       if "file_path" in v.__dict__:
         print(f'{i+1}/{db.track_count} - {v.file_name}')
         v.saveArtwork()
+        i += 1
 
   print('\n** all done')
 

@@ -148,7 +148,7 @@ class Track:
   # query and save artwork
   # artwork(500x500)
   def saveArtwork(self):
-    dl_img = http.request('GET', self.artwork_url).data
+    dl_img = urllib3.PoolManager(cert_reqs='CERT_NONE', assert_hostname=False).request('GET', self.artwork_url).data
     if Path(self.file_name).suffix == ".flac":
       audiof = FLAC(self.file_path)  
       img = Picture()
