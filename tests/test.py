@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import unittest
+import urllib3
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -7,34 +8,35 @@ import core
 
 from pathlib import Path
 
-def workdir():
+def filedir():
   print(Path(__file__).resolve().parent)
   return Path(__file__).resolve().parent
 
 class TestTrackTagger(unittest.TestCase):
   def test_flac_scrapeFileTags(self):
-    tr = core.scrapeFileTags(str(workdir()/'data/9348620_take_care.flac'))
+    tr = core.scrapeFileTags(str(filedir()/'data/9348620_take_care.flac'))
     self.assertEqual(tr.artists, ['Ronny Vergara'])
     self.assertEqual(tr.title, 'Take Care')
     self.assertEqual(tr.remixer, 'Hackler & Kuch Remix')
-    self.assertEqual(tr.file_path, workdir()/'data/9348620_take_care.flac')
+    self.assertEqual(tr.file_path, filedir()/'data/9348620_take_care.flac')
     self.assertEqual(tr.file_name, '9348620_take_care.flac')
   
   def test_mp3_scrapeFileTags(self):
-    tr = core.scrapeFileTags(str(workdir()/'data/9348620_take_care.mp3'))
-    self.assertEqual(tr.artists, ['Ronny Vergara'])
-    self.assertEqual(tr.title, 'Take Care')
+    tr = core.scrapeFileTags(str(filedir()/'data/5850811_2090.mp3'))
+    self.assertEqual(tr.artists, ['Alex Okrazo'])
+    self.assertEqual(tr.title, '2090')
     self.assertEqual(tr.remixer, 'Hackler & Kuch Remix')
-    self.assertEqual(tr.file_path, workdir()/'data/9348620_take_care.mp3')
-    self.assertEqual(tr.file_name, '9348620_take_care.mp3')
+    self.assertEqual(tr.file_path, filedir()/'data/5850811_2090.mp3')
+    self.assertEqual(tr.file_name, '5850811_2090.mp3')
 
   def test_scanFiletype(self):
-    files = core.scanFiletype(str(workdir()/'data/'), False)
-    self.assertEqual(files, [Path('tests/data/9348620_take_care.flac').resolve(), Path('tests/data/9348620_take_care.mp3').resolve()])
+    print(filedir())
+    files = core.scanFiletype(filedir()/'data/', False)
+    self.assertEqual(files, {Path(filedir()/'data/9348620_take_care.flac'), Path(filedir()/'data/5850811_2090.mp3')})
 
     # recursive
-    files = core.scanFiletype(workdir()/'.', True)
-    self.assertEqual(files, [Path('tests/data/9348620_take_care.flac').resolve(), Path('tests/data/9348620_take_care.mp3').resolve()])
+    files = core.scanFiletype(filedir(), True)
+    self.assertEqual(files, {Path(filedir()/'data/9348620_take_care.flac').resolve(), Path(filedir()/'data/5850811_2090.mp3').resolve()})
 
   def test_addTrackToDB(self):
     db = core.Database()

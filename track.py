@@ -8,7 +8,7 @@ from mutagen.id3 import ID3
 from pathlib import Path
 from lxml import html
 
-http = urllib3.PoolManager(20)
+http = urllib3.HTTPSConnectionPool("www.beatport.com", maxsize=20, cert_reqs='CERT_NONE', assert_hostname=False)
 
 class Track:
   def __init__(self, beatport_id = 0):
@@ -40,18 +40,18 @@ class Track:
 
   def queryTrackPage(self):
     try:
-      page = http.request('GET', 'https://www.beatport.com/track/aa/' + self.beatport_id)
+      page = http.request('GET', '/track/aa/' + self.beatport_id)
     except Exception as e:
       print(e)
       print(f"** error cannot get track info!")
-      sys.exit(1)
+      return
     return html.fromstring(page.data)
 
   # query track using beatport search engine
   def queryTrackSearch(track):
     from urllib import parse
     query = parse.quote(f"{' '.join(track.artists)} {track.title} {track.remixer}")
-    page = http.request('GET', f'https://www.beatport.com/search/tracks?per-page=20&q={query}&page=1')
+    page = http.request('GET', f'/search/tracks?per-page=20&q={query}&page=1')
     page_count = len(html.fromstring(page.data).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/div[3]/div[1]/div/*'))
     if page_count == 0:
       page_count = 1
@@ -79,7 +79,6 @@ class Track:
 
   # get tags using beatport id
   def getTags(self, page):
-    page = self.queryTrackPage()
     artistCount = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a')
     artistCount = len(artistCount)
 

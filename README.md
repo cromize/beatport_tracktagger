@@ -1,6 +1,8 @@
 Beatport Tracktagger
 ======
 
+[![Build Status](https://travis-ci.org/cromize/beatport_tracktagger.svg?branch=master)](https://travis-ci.org/cromize/beatport_tracktagger)
+
 Ever bought tracks from beatport that didn't have tags in it? Or you simply wanted to tag files automatically, by scraping?
 
 This multithread tagging tool uses fuzzy string matching to do the work. It's capable of getting useful tags from beatport  (`-s`) and assigning them into audio file (`-t`).

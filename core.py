@@ -8,6 +8,9 @@ from mutagen.flac import FLAC
 from pathlib import Path
 from track import Track
 
+# TODO: assign beatport_id as number, not string
+# TODO: assign bpm as number, not string
+
 MAX_WORKERS = 20
 
 beatport_id_pattern = re.compile('^[0-9]+[_]')
@@ -43,17 +46,17 @@ def scrapeFileTags(path):
 def scanFiletype(src, recursive):
   filetypes = '.flac', '.mp3'
   if Path(src).is_file():           # single file
-    files = [Path(src)]
+    files = {Path(src)}
   elif recursive:                   # recursive 
     files = Path(src).glob('**/*')
   else:                             # input folder
     files = Path(src).glob('*')     
 
   # match filetype
-  out = []
+  out = set() 
   for f in files:
     if Path(f).suffix in filetypes: 
-      out.append(f)
+      out.add(f)
   return out
 
 # *** database ***
@@ -134,6 +137,7 @@ def worker(work, queue, arg=None):
     work(item, arg)
     queue.task_done()
 
+# TODO: pass in Path() object 
 def addTrackToDB(filepath, db):
   global processing_iterator 
   filename = Path(filepath).name
@@ -150,15 +154,14 @@ def addTrackToDB(filepath, db):
     track.file_path = str(Path(filepath))
     track.file_name = filename
 
-    # try 10 times
-    for tries in range(10):
-      try:
-        page = track.queryTrackPage()
-        track.getTags(page)
-        break
-      except Exception as e:
-        print(e)
-        pass
+    try:
+      page = track.queryTrackPage()
+      track.getTags(page)
+    except Exception as e:
+      print(f"** error cannot get track info!")
+      processing_iterator += 1
+      print(f"{processing_iterator}/{db.track_count} - (Cannot get track info) {track.file_name}") 
+      return
 
     processing_iterator += 1
     db.db[track.beatport_id] = track
