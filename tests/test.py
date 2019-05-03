@@ -40,8 +40,8 @@ class TestTrackTagger(unittest.TestCase):
     db = core.Database()
     core.addTrackToDB(filedir()/'data/9348620_take_care.flac', db)
 
-    tr = db.db['9348620'] 
-    self.assertEqual(tr.beatport_id, '9348620')
+    tr = db.db[9348620] 
+    self.assertEqual(tr.beatport_id, 9348620)
     self.assertEqual(tr.artists, ['Ronny Vergara'])
     self.assertEqual(tr.title, 'Take Care')
     self.assertEqual(tr.album, 'Remixes Compilation VOL02')
@@ -57,7 +57,7 @@ class TestTrackTagger(unittest.TestCase):
     core.addTrackToDB(f, db)
     db.scanBeatportID([f])
 
-    self.assertEqual(db.db['9348620'].file_path, filedir()/'data/9348620_take_care.flac')
+    self.assertEqual(db.db[9348620].file_path, filedir()/'data/9348620_take_care.flac')
 
   def test_doFuzzyMatch(self):
     f = Path(filedir()/'data/9348620_take_care.flac')

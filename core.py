@@ -73,7 +73,7 @@ class Database:
     for f in files:
       # match beatport id in Track.db
       if beatport_id_pattern.match(Path(f).name):
-        beatport_id = beatport_id_pattern.match(Path(f).name).group()[:-1]
+        beatport_id = int(beatport_id_pattern.match(Path(f).name).group()[:-1])
         if beatport_id in self.db.keys():
           # assing scanned path to db
           self.db[beatport_id].file_path = Path(f)
@@ -142,7 +142,7 @@ def addTrackToDB(filepath, db):
   filename = filepath.name
   # if is valid beatport file
   if beatport_id_pattern.match(filename):
-    beatport_id = beatport_id_pattern.match(filename).group()[:-1]
+    beatport_id = int(beatport_id_pattern.match(filename).group()[:-1])
     if db.trackInDB(beatport_id):
       processing_iterator += 1
       print(f'{processing_iterator}/{db.track_count} - (Already in DB) {filename}')
@@ -176,8 +176,6 @@ def doFuzzyMatch(f, db):
   if tr:
     res = Track.queryTrackSearch(tr)
     match_id = Track.fuzzyTrackMatch(res, tr)
-    print("here")
-    print(match_id)
     tr.beatport_id = match_id
     db.db[match_id] = tr
     buf.append(f)

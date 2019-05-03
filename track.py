@@ -40,7 +40,7 @@ class Track:
 
   def queryTrackPage(self):
     try:
-      page = http.request('GET', '/track/aa/' + self.beatport_id)
+      page = http.request('GET', '/track/aa/' + str(self.beatport_id))
     except Exception as e:
       print(e)
       print(f"** error cannot get track info!")
