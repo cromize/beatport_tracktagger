@@ -176,6 +176,8 @@ def doFuzzyMatch(f, db):
   if tr:
     res = Track.queryTrackSearch(tr)
     match_id = Track.fuzzyTrackMatch(res, tr)
+    print("here")
+    print(match_id)
     tr.beatport_id = match_id
     db.db[match_id] = tr
     buf.append(f)

@@ -30,15 +30,15 @@ class TestTrackTagger(unittest.TestCase):
 
   def test_scanFiletype(self):
     files = core.scanFiletype(filedir()/'data/', False)
-    self.assertEqual(files, {Path(filedir()/'data/9348620_take_care.flac'), Path(filedir()/'data/5850811_2090.mp3')})
+    self.assertEqual(files, {filedir()/'data/9348620_take_care.flac', filedir()/'data/5850811_2090.mp3'})
 
     # recursive
     files = core.scanFiletype(filedir(), True)
-    self.assertEqual(files, {Path(filedir()/'data/9348620_take_care.flac'), Path(filedir()/'data/5850811_2090.mp3')})
+    self.assertEqual(files, {filedir()/'data/9348620_take_care.flac', filedir()/'data/5850811_2090.mp3'})
 
   def test_addTrackToDB(self):
     db = core.Database()
-    core.addTrackToDB(Path('data/9348620_take_care.flac').resolve(), db)
+    core.addTrackToDB(filedir()/'data/9348620_take_care.flac', db)
 
     tr = db.db['9348620'] 
     self.assertEqual(tr.beatport_id, '9348620')
@@ -52,12 +52,23 @@ class TestTrackTagger(unittest.TestCase):
     self.assertEqual(tr.label, 'Dolma Records')
     
   def test_scanBeatportID(self):
-    f = Path('data/9348620_take_care.flac')
+    f = Path(filedir()/'data/9348620_take_care.flac')
     db = core.Database()
     core.addTrackToDB(f, db)
     db.scanBeatportID([f])
 
-    self.assertEqual(db.db['9348620'].file_path, Path('data/9348620_take_care.flac'))
+    self.assertEqual(db.db['9348620'].file_path, filedir()/'data/9348620_take_care.flac')
+
+  def test_doFuzzyMatch(self):
+    f = Path(filedir()/'data/9348620_take_care.flac')
+    db = core.Database()
+    core.doFuzzyMatch(f, db)
+
+    tr = db.db[5945839] 
+    self.assertEqual(tr.beatport_id, 5945839)
+    self.assertEqual(tr.artists, ['Ronny Vergara'])
+    self.assertEqual(tr.title, 'Take Care')
+    self.assertEqual(tr.remixer, 'Hackler & Kuch Remix')
     
 if __name__ == '__main__':
   unittest.main()
