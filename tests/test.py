@@ -13,7 +13,7 @@ def filedir():
 
 class TestTrackTagger(unittest.TestCase):
   def test_flac_scrapeFileTags(self):
-    tr = core.scrapeFileTags(str(filedir()/'data/9348620_take_care.flac'))
+    tr = core.scrapeFileTags(filedir()/'data/9348620_take_care.flac')
     self.assertEqual(tr.artists, ['Ronny Vergara'])
     self.assertEqual(tr.title, 'Take Care')
     self.assertEqual(tr.remixer, 'Hackler & Kuch Remix')
@@ -21,7 +21,7 @@ class TestTrackTagger(unittest.TestCase):
     self.assertEqual(tr.file_name, '9348620_take_care.flac')
   
   def test_mp3_scrapeFileTags(self):
-    tr = core.scrapeFileTags(str(filedir()/'data/5850811_2090.mp3'))
+    tr = core.scrapeFileTags(filedir()/'data/5850811_2090.mp3')
     self.assertEqual(tr.artists, ['Alex Okrazo'])
     self.assertEqual(tr.title, '2090')
     self.assertEqual(tr.remixer, 'Hackler & Kuch Remix')
@@ -38,7 +38,7 @@ class TestTrackTagger(unittest.TestCase):
 
   def test_addTrackToDB(self):
     db = core.Database()
-    core.addTrackToDB(str(Path('data/9348620_take_care.flac').resolve()), db)
+    core.addTrackToDB(Path('data/9348620_take_care.flac').resolve(), db)
 
     tr = db.db['9348620'] 
     self.assertEqual(tr.beatport_id, '9348620')

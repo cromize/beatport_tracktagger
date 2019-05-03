@@ -17,14 +17,14 @@ beatport_id_pattern = re.compile('^[0-9]+[_]')
 processing_iterator = 0
 
 def scrapeFileTags(path):
-  if Path(path).suffix == ".flac":
+  if path.suffix == ".flac":
     f = FLAC(path)  
-  elif Path(path).suffix == ".mp3":
+  elif path.suffix == ".mp3":
     f = EasyID3(path)  
 
   tr = Track(0)
-  tr.file_name = Path(path).name
-  tr.file_path = Path(path)
+  tr.file_name = path.name
+  tr.file_path = path
   # extract artist and title
   try:
     tr.artists = f['ARTIST']
@@ -137,10 +137,9 @@ def worker(work, queue, arg=None):
     work(item, arg)
     queue.task_done()
 
-# TODO: pass in Path() object 
 def addTrackToDB(filepath, db):
   global processing_iterator 
-  filename = Path(filepath).name
+  filename = filepath.name
   # if is valid beatport file
   if beatport_id_pattern.match(filename):
     beatport_id = beatport_id_pattern.match(filename).group()[:-1]
@@ -151,7 +150,7 @@ def addTrackToDB(filepath, db):
 
     # create and get tags
     track = Track(beatport_id)
-    track.file_path = str(Path(filepath))
+    track.file_path = str(filepath)
     track.file_name = filename
 
     try:
