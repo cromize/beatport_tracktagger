@@ -47,7 +47,7 @@ class TestTrackTagger(unittest.TestCase):
     self.assertEqual(tr.album, 'Remixes Compilation VOL02')
     self.assertEqual(tr.remixer, 'Hackler & Kuch Remix')
     self.assertEqual(tr.released, '2017-06-05')
-    self.assertEqual(tr.bpm, '126')
+    self.assertEqual(tr.bpm, 126)
     self.assertEqual(tr.genre, 'Techno')
     self.assertEqual(tr.label, 'Dolma Records')
     

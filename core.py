@@ -8,9 +8,6 @@ from mutagen.flac import FLAC
 from pathlib import Path
 from track import Track
 
-# TODO: assign beatport_id as number, not string
-# TODO: assign bpm as number, not string
-
 MAX_WORKERS = 20
 
 beatport_id_pattern = re.compile('^[0-9]+[_]')
@@ -181,5 +178,4 @@ def doFuzzyMatch(f, db):
     buf.append(f)
 
   return processing_iterator
-
 
