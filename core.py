@@ -1,5 +1,6 @@
 import threading
 import queue
+import time
 import json
 import re
 
@@ -8,7 +9,7 @@ from mutagen.flac import FLAC
 from pathlib import Path
 from track import Track
 
-MAX_WORKERS = 20
+MAX_WORKERS = 10
 
 beatport_id_pattern = re.compile('^[0-9]+[_]')
 processing_iterator = 0
@@ -136,7 +137,7 @@ def worker(work, queue, arg=None):
 
 def addTrackToDB(filepath, db):
   global processing_iterator 
-  filename = filepath.name
+  filename = Path(filepath).name
   # if is valid beatport file
   if beatport_id_pattern.match(filename):
     beatport_id = int(beatport_id_pattern.match(filename).group()[:-1])
@@ -147,28 +148,37 @@ def addTrackToDB(filepath, db):
 
     # create and get tags
     track = Track(beatport_id)
-    track.file_path = str(filepath)
+    track.file_path = Path(filepath)
     track.file_name = filename
 
     try:
-      page = track.queryTrackPage()
-      track.getTags(page)
-    except Exception as e:
-      print(f"** error cannot get track info!")
-      processing_iterator += 1
-      print(f"{processing_iterator}/{db.track_count} - (Cannot get track info) {track.file_name}") 
-      return
+      # if fail try fuzzyMatch
+      for i in range(2):
+        try:
+          page = track.queryTrackPage()
+          track.getTags(page)
+          i = 2
+        except Exception as ee:
+          print("\n** beatport id is invalid")
+          print("** trying using fuzzy matching")
+          track = doFuzzyMatch(track.file_path, db)
+          processing_iterator -= 1
 
-    processing_iterator += 1
-    db.db[track.beatport_id] = track
-    print(f"{processing_iterator}/{db.track_count} - {track.file_name}") 
+      processing_iterator += 1
+      db.db[track.beatport_id] = track
+      print(f"{processing_iterator}/{db.track_count} - {track.file_path}") 
+    except Exception as e:
+      processing_iterator += 1
+      print("** error cannot get track info!")
+      print(f"{processing_iterator}/{db.track_count} - (Cannot get track info) {filename}") 
+      return
 
 # add beatport id using fuzzy matching
 def doFuzzyMatch(f, db):
   global processing_iterator 
   buf = []
   processing_iterator += 1
-  print(f"{processing_iterator}/{db.track_count} - {f}")
+  print(f"{processing_iterator}/{db.track_count} - (fuzzy matching) {f}")
   tr = scrapeFileTags(f)
   if tr:
     res = Track.queryTrackSearch(tr)
@@ -176,6 +186,5 @@ def doFuzzyMatch(f, db):
     tr.beatport_id = match_id
     db.db[match_id] = tr
     buf.append(f)
-
-  return processing_iterator
+  return tr
 

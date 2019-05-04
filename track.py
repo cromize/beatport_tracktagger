@@ -8,7 +8,7 @@ from mutagen.id3 import ID3
 from pathlib import Path
 from lxml import html
 
-http = urllib3.HTTPSConnectionPool("www.beatport.com", maxsize=20, cert_reqs='CERT_NONE', assert_hostname=False)
+http = urllib3.HTTPSConnectionPool("www.beatport.com", maxsize=10, cert_reqs='CERT_NONE', assert_hostname=False)
 
 class Track:
   def __init__(self, beatport_id = 0):
@@ -42,24 +42,23 @@ class Track:
     try:
       page = http.request('GET', '/track/aa/' + str(self.beatport_id))
     except Exception as e:
-      print(e)
-      print(f"** error cannot get track info!")
       return
     return html.fromstring(page.data)
 
   # query track using beatport search engine
   def queryTrackSearch(track):
     from urllib import parse
-    query = parse.quote(f"{' '.join(track.artists)} {track.title} {track.remixer}")
+    query = parse.quote_plus(f"{' '.join(track.artists).replace('& ', '')} {track.title} {track.remixer}")
     page = http.request('GET', f'/search/tracks?per-page=20&q={query}&page=1')
-    page_count = len(html.fromstring(page.data).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/div[3]/div[1]/div/*'))
+    pdata = html.fromstring(page.data) 
+    page_count = len(pdata.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/div[3]/div[1]/div/*'))
     if page_count == 0:
       page_count = 1
 
     # should we query all pages? desired result should be at first page if relevant
     # 20 per-page
     tracks = dict()
-    rtracks = html.fromstring(page.data).xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/ul/*')
+    rtracks = pdata.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/ul/*')
     
     # for every track in result page
     for rtrack in rtracks:
@@ -82,6 +81,7 @@ class Track:
     artistCount = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a')
     artistCount = len(artistCount)
 
+    self.artists = []
     # could be more artists
     for artist in range(1, artistCount + 1):
       path = page.xpath(f'//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a[{str(artist)}]/text()')
