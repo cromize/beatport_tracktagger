@@ -120,12 +120,21 @@ class Track:
     print ('')
 
   # update tags in valid scanned files
-  def fileTagsUpdate(self):
+  def fileTagsUpdate(self, force=False):
     path = self.file_path
     if Path(self.file_name).suffix == ".flac":
       audiof = FLAC(path)  
     elif Path(self.file_name).suffix == ".mp3":
       audiof = EasyID3(path)  
+
+    # don't implicitly overwrite existing tags
+    if len(audiof) != 0:
+      print(f"\n** file contains tags already {path}")
+      if force:
+        print(f"*** overwriting tags")
+      else:
+        print(f"*** clean tags (-c) or force overwrite (-f)")
+        return
 
     # single artist
     if len(self.artists) == 1: audiof['ARTIST'] = self.artists

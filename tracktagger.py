@@ -24,6 +24,7 @@ def argsParserInit():
   parser.add_argument('-r', '--recursive', action='store_true', help='run recursive')
   parser.add_argument('-z', '--fuzzy', action='store_true', help='try to fuzzy match')
   parser.add_argument('-i', '--input', help='specify input', default='')
+  parser.add_argument('-f', '--force', action='store_true', help='force tag overwrite')
   parser.add_argument('--save-db', help='save tags to database', default='local.db')
   parser.add_argument('--load-db', help='load tags from database', default='local.db')
   return parser
@@ -52,6 +53,14 @@ if __name__ == "__main__":
   # scan for flac and mp3 files
   work_files = core.scanFiletype(args.input, args.recursive)
 
+  # clean file tags
+  if args.clean_tags:
+    print("\n** cleaning tags")
+    for idx, f in enumerate(work_files):
+      print(f'{idx+1}/{len(work_files)} - {f}')
+      Track.cleanTags(f)
+    sys.exit(1)
+
   # query beatport id using fuzzy name matching
   if args.fuzzy:
     print("\n** getting tags using fuzzy matching")
@@ -74,16 +83,8 @@ if __name__ == "__main__":
       # for scanned files only
       if "file_path" in v.__dict__:
         print(f'{i+1}/{db.track_count} - {v.file_name}')
-        v.fileTagsUpdate()
+        v.fileTagsUpdate(args.force)
         i += 1
-
-  # clean file tags
-  if args.clean_tags:
-    print("\n** cleaning tags")
-    for idx, f in enumerate(work_files):
-      print(f'{idx+1}/{len(work_files)} - {f}')
-      Track.cleanTags(f)
-    sys.exit(1)
 
   # save artwork
   if args.artwork:
