@@ -157,9 +157,11 @@ class Track:
   # query and save artwork
   # artwork(500x500)
   def saveArtwork(self):
-    dl_img = urllib3.PoolManager(cert_reqs='CERT_NONE', assert_hostname=False).request('GET', self.artwork_url).data
     if Path(self.file_name).suffix == ".flac":
       audiof = FLAC(self.file_path)  
+      if len(audiof.pictures) != 0:
+        return
+      dl_img = urllib3.PoolManager(cert_reqs='CERT_NONE', assert_hostname=False).request('GET', self.artwork_url).data
       img = Picture()
       img.type = 3
       img.desc = 'artwork'
@@ -167,6 +169,9 @@ class Track:
       audiof.add_picture(img)
     elif Path(self.file_name).suffix == ".mp3":
       audiof = ID3(self.file_path)  
+      if len(audiof.pictures) != 0:
+        return
+      dl_img = urllib3.PoolManager(cert_reqs='CERT_NONE', assert_hostname=False).request('GET', self.artwork_url).data
       audiof.add(mutagen.id3.APIC(3, 'image/jpeg', 3, 'Front cover', dl_img))
     audiof.save()
 

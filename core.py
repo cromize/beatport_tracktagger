@@ -25,16 +25,17 @@ def scrapeFileTags(path):
   tr.file_path = path
   # extract artist and title
   try:
-    tr.artists = f['ARTIST']
-    tr.title = f['TITLE'].pop().split(' (')[0]
+    tr.artists = f['ARTIST'] or f['artist']
+    tr.title = f['TITLE'].pop().split(' (')[0] or f['title'].pop().split(' (')[0]
   except:
-    print("** error cannot match file without artist or title")
-    print("** skipping")
+    print("*** error cannot match file without artist or title")
+    print(f"*** skipping {path.name}")
     return
 
   # try to extract remixer
   try:
-    tr.remixer = f['TITLE'][0].split('(')[1].split(')')[0]
+    tr.remixer = f['TITLE'][0].split('(')[1].split(')')[0] or f['title'][0].split('(')[1].split(')')[0]
+
   except:
     # assume it's original mix, when no remixer is supplied
     tr.remixer = "Original Mix"
@@ -139,11 +140,19 @@ def addTrackToDB(filepath, db):
   global processing_iterator 
   filename = Path(filepath).name
   # if is valid beatport file
+
+  # don't query if in database
+  for k,v in db.db.items():
+    if v.file_name == Path(filepath).name:
+      processing_iterator += 1
+      print(f"{processing_iterator}/{db.track_count} - (already in DB) {Path(filepath).name}")
+      return v
+
   if beatport_id_pattern.match(filename):
     beatport_id = int(beatport_id_pattern.match(filename).group()[:-1])
     if db.trackInDB(beatport_id):
       processing_iterator += 1
-      print(f'{processing_iterator}/{db.track_count} - (Already in DB) {filename}')
+      print(f'{processing_iterator}/{db.track_count} - (already in DB) {filename}')
       return processing_iterator
 
     # create and get tags
@@ -152,39 +161,44 @@ def addTrackToDB(filepath, db):
     track.file_name = filename
 
     try:
-      # if fail try fuzzyMatch
-      for i in range(2):
-        try:
-          page = track.queryTrackPage()
-          track.getTags(page)
-          i = 2
-        except Exception as ee:
-          print("\n** beatport id is invalid")
-          print("** trying using fuzzy matching")
-          track = doFuzzyMatch(track.file_path, db)
-          processing_iterator -= 1
-
+      page = track.queryTrackPage()
+      track.getTags(page)
+    except Exception as ee:
       processing_iterator += 1
-      db.db[track.beatport_id] = track
-      print(f"{processing_iterator}/{db.track_count} - {track.file_path}") 
-    except Exception as e:
-      processing_iterator += 1
-      print("** error cannot get track info!")
-      print(f"{processing_iterator}/{db.track_count} - (Cannot get track info) {filename}") 
+      print(f"{processing_iterator}/{db.track_count} - {filename}")
+      print("*** beatport id is invalid")
+      print("*** try to use fuzzy matching (-z)\n")
       return
+
+    processing_iterator += 1
+    db.db[track.beatport_id] = track
+    print(f"{processing_iterator}/{db.track_count} - {track.file_name}") 
+    return
 
 # add beatport id using fuzzy matching
 def doFuzzyMatch(f, db):
   global processing_iterator 
-  buf = []
+
   processing_iterator += 1
+
+  # don't query if in database
+  for k,v in db.db.items():
+    if v.file_name == Path(f).name:
+      print(f"{processing_iterator}/{db.track_count} - (already in DB) {f}")
+      return v
+
   print(f"{processing_iterator}/{db.track_count} - (fuzzy matching) {f}")
+
   tr = scrapeFileTags(f)
   if tr:
     res = Track.queryTrackSearch(tr)
     match_id = Track.fuzzyTrackMatch(res, tr)
     tr.beatport_id = match_id
+
+    # get tags
+    page = tr.queryTrackPage()
+    tr.getTags(page)
+
     db.db[match_id] = tr
-    buf.append(f)
   return tr
 

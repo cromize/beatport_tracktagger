@@ -8,7 +8,7 @@ from os.path import isfile
 from track import Track
 from lxml import html
 
-# TODO: make single exit function with pretty info print
+# TODO: print tracks that errored at the end
 
 # TODO: make musical key retrieval work
 
@@ -63,14 +63,15 @@ if __name__ == "__main__":
 
   # query beatport id using fuzzy name matching
   if args.fuzzy:
-    print("\n** getting tags using fuzzy matching")
+    print("\n** getting Beatport ID using fuzzy matching")
     db.track_count = len(work_files)
     core.spawnWorkers(core.doFuzzyMatch, work_files, db)
+    db.saveJSON(args.save_db)
   else:
     work_files = db.scanBeatportID(work_files)
 
   # get tags from beatport
-  if args.sync:
+  if args.sync and not args.fuzzy:
     print('\n** getting tags from beatport')
     core.spawnWorkers(core.addTrackToDB, work_files, db)
     db.saveJSON(args.save_db)
