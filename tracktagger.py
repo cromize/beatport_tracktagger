@@ -40,7 +40,7 @@ if __name__ == "__main__":
   args = input_parser.parse_args()
 
   # args check
-  if (len(sys.argv) <= 1):
+  if len(sys.argv) <= 1:
     input_parser.print_help()  
     sys.exit(0)
 
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     for idx, f in enumerate(work_files):
       print(f'{idx+1}/{len(work_files)} - {f}')
       Track.cleanTags(f)
-    sys.exit(1)
+    sys.exit(0)
 
   # query beatport id using fuzzy name matching
   if args.fuzzy:
@@ -75,6 +75,9 @@ if __name__ == "__main__":
     print('\n** getting tags from beatport')
     core.spawnWorkers(core.addTrackToDB, work_files, db)
     db.saveJSON(args.save_db)
+
+  # assign available paths
+  work_files = db.assignPath(work_files)
 
   # tag audio files
   if args.tag_files: 

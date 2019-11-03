@@ -80,6 +80,16 @@ class Database:
     self.track_count = len(outputFiles)
     return outputFiles
 
+  def assignPath(self, files):
+    outputFiles = []
+    for f in files:
+      for k,v in self.db.items():
+        if Path(f).name == v.file_name:
+          self.db[k].file_path = Path(f)
+          outputFiles.append(Path(f))
+    self.track_count = len(outputFiles)
+    return outputFiles
+
   def trackInDB(self, beatport_id):
     if beatport_id in self.db:
       return True
@@ -178,7 +188,6 @@ def addTrackToDB(filepath, db):
 # add beatport id using fuzzy matching
 def doFuzzyMatch(f, db):
   global processing_iterator 
-
   processing_iterator += 1
 
   # don't query if in database
