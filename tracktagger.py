@@ -67,11 +67,9 @@ if __name__ == "__main__":
     db.track_count = len(work_files)
     core.spawnWorkers(core.doFuzzyMatch, work_files, db)
     db.saveJSON(args.save_db)
-  else:
+  elif args.sync:
+    # get tags from beatport
     work_files = db.scanBeatportID(work_files)
-
-  # get tags from beatport
-  if args.sync and not args.fuzzy:
     print('\n** getting tags from beatport')
     core.spawnWorkers(core.addTrackToDB, work_files, db)
     db.saveJSON(args.save_db)

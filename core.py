@@ -201,6 +201,9 @@ def doFuzzyMatch(f, db):
   tr = scrapeFileTags(f)
   if tr:
     res = Track.queryTrackSearch(tr)
+    if not res:
+      print(f"*** NO match for {f}")
+      return tr
     match_id = Track.fuzzyTrackMatch(res, tr)
     tr.beatport_id = match_id
 
