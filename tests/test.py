@@ -6,6 +6,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import core
 
+from mutagen.flac import FLAC
 from pathlib import Path
 
 def filedir():
@@ -48,7 +49,7 @@ class TestTrackTagger(unittest.TestCase):
     self.assertEqual(tr.remixer, 'Hackler & Kuch Remix')
     self.assertEqual(tr.released, '2017-06-05')
     self.assertEqual(tr.bpm, 126)
-    self.assertEqual(tr.genre, 'Techno')
+    self.assertEqual(tr.genre, 'Techno (Peak Time / Driving / Hard)')
     self.assertEqual(tr.label, 'Dolma Records')
     
   def test_scanBeatportID(self):
@@ -60,6 +61,7 @@ class TestTrackTagger(unittest.TestCase):
     self.assertEqual(db.db[9348620].file_path, filedir()/'data/9348620_take_care.flac')
 
   def test_doFuzzyMatch(self):
+    # 5945839 and 9348620 are the same
     f = Path(filedir()/'data/9348620_take_care.flac')
     db = core.Database()
     core.doFuzzyMatch(f, db)
@@ -69,6 +71,23 @@ class TestTrackTagger(unittest.TestCase):
     self.assertEqual(tr.artists, ['Ronny Vergara'])
     self.assertEqual(tr.title, 'Take Care')
     self.assertEqual(tr.remixer, 'Hackler & Kuch Remix')
-    
+
+  def test_flac_fileTagsUpdate(self):
+    f = Path(filedir()/'data/9348620_take_care.flac')
+    db = core.Database()
+    core.addTrackToDB(f, db)
+
+    tr = db.db[9348620]
+    tr.fileTagsUpdate(force=True)
+
+    audiof = FLAC(tr.file_path)
+    self.assertEqual(audiof['ARTIST'], ['Ronny Vergara'])
+    self.assertEqual(audiof['DATE'], ['2017'])  # we save only year into the file
+    self.assertEqual(audiof['GENRE'], ['Techno (Peak Time / Driving / Hard)'])
+    self.assertEqual(audiof['ORGANIZATION'], ['Dolma Records'])
+    self.assertEqual(audiof['TITLE'], ['Take Care (Hackler & Kuch Remix)'])
+    self.assertEqual(audiof['ALBUM'], ['Remixes Compilation VOL02'])
+    self.assertEqual(audiof['BPM'], ['126'])
+
 if __name__ == '__main__':
   unittest.main()

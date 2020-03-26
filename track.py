@@ -152,6 +152,7 @@ class Track:
     audiof['ORGANIZATION'] = self.label
     audiof['TITLE'] = self.title + " (" + self.remixer + ")"
     audiof['ALBUM'] = self.album
+    audiof['BPM'] = str(self.bpm)
     audiof.save()
 
   # query and save artwork
