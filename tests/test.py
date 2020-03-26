@@ -51,6 +51,7 @@ class TestTrackTagger(unittest.TestCase):
     self.assertEqual(tr.bpm, 126)
     self.assertEqual(tr.genre, 'Techno (Peak Time / Driving / Hard)')
     self.assertEqual(tr.label, 'Dolma Records')
+    self.assertEqual(tr.catalog, 'DM098')
     
   def test_scanBeatportID(self):
     f = Path(filedir()/'data/9348620_take_care.flac')

@@ -76,6 +76,10 @@ class Track:
       tracks[track.beatport_id] = track
     return tracks
 
+  def queryReleasePage(self, track_page):
+    release_url = track_page.xpath('/html/body/div[2]/div/section/main/div[2]/div/ul[1]/li/a').pop().values()[0]
+    return html.fromstring(http.request('GET', release_url).data)
+
   # get tags using beatport id
   def getTags(self, page):
     artistCount = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/div[1]/span[2]/a')
@@ -98,6 +102,7 @@ class Track:
     self.label = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[2]/li[6]/span[2]/a/text()').pop()
     self.album = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/@data-ec-name').pop()
     self.artwork_url = page.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div[2]/div/ul[1]/li/a/img').pop().attrib['src']
+    self.catalog = self.queryReleasePage(page).xpath('/html/body/div[2]/div/section/main/div[2]/ul/li[4]/span[2]/text()').pop()
 
   def printTrackInfo(self):
     print ('track: ', end='')
