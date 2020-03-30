@@ -76,6 +76,7 @@ class Database:
         if beatport_id in self.db.keys():
           # assing scanned path to db
           self.db[beatport_id].file_path = Path(f)
+        # do we want to append files that are not in db?
         outputFiles.append(Path(f))
     self.track_count = len(outputFiles)
     return outputFiles

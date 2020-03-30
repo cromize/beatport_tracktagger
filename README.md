@@ -40,7 +40,7 @@ Usage
 # save artwork from beatport (500x500)
 ./tracktagger.py -a
 
-# clean all tags with artwork
+# clean all tags and artwork
 ./tracktagger.py -c
 
 # run recursively

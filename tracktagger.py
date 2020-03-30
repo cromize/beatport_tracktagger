@@ -8,6 +8,8 @@ from os.path import isfile
 from track import Track
 from lxml import html
 
+# TODO: add check for validity of tags in files
+
 # TODO: print tracks that errored at the end
 
 # TODO: make musical key retrieval work
