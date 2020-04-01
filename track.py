@@ -27,10 +27,10 @@ class Track:
     self.file_name = ''
 
   # returns most probable match
-  def fuzzyTrackMatch(src, template):
+  def fuzzyTrackMatch(src, template_track):
     from fuzzywuzzy import process
     from fuzzywuzzy.fuzz import token_sort_ratio
-    template = " ".join(template.artists), template.title, template.remixer
+    template = " ".join(template_track.artists), template_track.title, template_track.remixer
     x = dict()
     # candidates in src
     for k, v in src.items():
