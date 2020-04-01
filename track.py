@@ -105,24 +105,24 @@ class Track:
     self.catalog = self.queryReleasePage(page).xpath('/html/body/div[2]/div/section/main/div[2]/ul/li[4]/span[2]/text()').pop()
 
   def printTrackInfo(self):
-    print ('track: ', end='')
+    print('track: ', end='')
     x = 1
     for artist in self.artists:   # for multiple artist pretty print
       print(artist, end='')
       if len(self.artists) > 1 and x < len(self.artists):
-        print (', ', end='')
+        print(', ', end='')
       x += 1
 
-    print (f' - {self.title} ({self.remixer})')
-    print (f'Album: {self.album}\n'
-           f'Length: {self.length}\n'
-           f'Released: {self.released}\n'
-           f'BPM: {self.bpm}\n'
-           f'Key: {self.key}\n'
-           f'Genre: {self.genre}\n'
-           f'Label: {self.label}\n'
-           f'Beatport ID: {self.beatport_id}\n')
-    print ('')
+    print(f' - {self.title} ({self.remixer})')
+    print(f'Album: {self.album}\n'
+          f'Length: {self.length}\n'
+          f'Released: {self.released}\n'
+          f'BPM: {self.bpm}\n'
+          f'Key: {self.key}\n'
+          f'Genre: {self.genre}\n'
+          f'Label: {self.label}\n'
+          f'Beatport ID: {self.beatport_id}\n')
+    print('')
 
   # update tags in valid scanned files
   def fileTagsUpdate(self, force=False):

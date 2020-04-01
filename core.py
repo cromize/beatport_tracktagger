@@ -23,6 +23,7 @@ def scrapeFileTags(path):
   tr = Track(0)
   tr.file_name = path.name
   tr.file_path = path
+
   # extract artist and title
   try:
     tr.artists = f['ARTIST'] or f['artist']
@@ -35,7 +36,6 @@ def scrapeFileTags(path):
   # try to extract remixer
   try:
     tr.remixer = f['TITLE'][0].split('(')[1].split(')')[0] or f['title'][0].split('(')[1].split(')')[0]
-
   except:
     # assume it's original mix, when no remixer is supplied
     tr.remixer = "Original Mix"
@@ -150,7 +150,6 @@ def worker(work, queue, arg=None):
 def addTrackToDB(filepath, db):
   global processing_iterator 
   filename = Path(filepath).name
-  # if is valid beatport file
 
   # don't query if in database
   for k,v in db.db.items():
@@ -159,6 +158,7 @@ def addTrackToDB(filepath, db):
       print(f"{processing_iterator}/{db.track_count} - (already in DB) {Path(filepath).name}")
       return v
 
+  # if is valid beatport file
   if beatport_id_pattern.match(filename):
     beatport_id = int(beatport_id_pattern.match(filename).group()[:-1])
     if db.trackInDB(beatport_id):
