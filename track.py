@@ -48,7 +48,8 @@ class Track:
   # query track using beatport search engine
   def queryTrackSearch(track):
     from urllib import parse
-    query = parse.quote_plus(f"{' '.join(track.artists).replace('& ', '')} {track.title} {track.remixer}")
+    remixed = track.remixer if track.remixer != "Original Mix" else ""
+    query = parse.quote_plus(f"{' '.join(track.artists).replace('& ', '')} {track.title} {remixed}")
     page = http.request('GET', f'/search/tracks?per-page=20&q={query}&page=1')
     pdata = html.fromstring(page.data) 
     page_count = len(pdata.xpath('//*[@id="pjax-inner-wrapper"]/section/main/div/div[3]/div[3]/div[1]/div/*'))
