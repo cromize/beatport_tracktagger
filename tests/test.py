@@ -49,7 +49,7 @@ class TestTrackTagger(unittest.TestCase):
     self.assertEqual(tr.remixer, 'Hackler & Kuch Remix')
     self.assertEqual(tr.released, '2017-06-05')
     self.assertEqual(tr.bpm, 126)
-    self.assertEqual(tr.genre, 'Techno (Peak Time / Driving / Hard)')
+    self.assertEqual(tr.genre, 'Techno (Peak Time / Driving)')
     self.assertEqual(tr.label, 'Dolma Records')
     self.assertEqual(tr.catalog, 'DM098')
     
@@ -84,7 +84,7 @@ class TestTrackTagger(unittest.TestCase):
     audiof = FLAC(tr.file_path)
     self.assertEqual(audiof['ARTIST'], ['Ronny Vergara'])
     self.assertEqual(audiof['DATE'], ['2017'])  # we save only year into the file
-    self.assertEqual(audiof['GENRE'], ['Techno (Peak Time / Driving / Hard)'])
+    self.assertEqual(audiof['GENRE'], ['Techno (Peak Time / Driving)'])
     self.assertEqual(audiof['ORGANIZATION'], ['Dolma Records'])
     self.assertEqual(audiof['TITLE'], ['Take Care (Hackler & Kuch Remix)'])
     self.assertEqual(audiof['ALBUM'], ['Remixes Compilation VOL02'])
