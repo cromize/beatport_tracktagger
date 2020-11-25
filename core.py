@@ -206,6 +206,9 @@ def doFuzzyMatch(f, db):
       print(f"*** NO match for {f}")
       return tr
     match_id = Track.fuzzyTrackMatch(res, tr)
+    if not match_id:
+      print(f"*** NO match for {f}")
+      return tr
     tr.beatport_id = match_id
 
     # get tags

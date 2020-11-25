@@ -36,6 +36,8 @@ class Track:
     for k, v in src.items():
       x[k] = " ".join((*v.artists, v.title, v.remixer))
     match = process.extractOne(" ".join(template), x, scorer=token_sort_ratio)
+    if not match:
+      return None
     return match[2]
 
   def queryTrackPage(self):
