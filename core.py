@@ -4,8 +4,10 @@ import time
 import json
 import re
 
+from fuzzywuzzy.fuzz import token_sort_ratio
 from mutagen.easyid3 import EasyID3
 from mutagen.flac import FLAC
+from unidecode import unidecode
 from pathlib import Path
 from track import Track
 
@@ -200,6 +202,7 @@ def doFuzzyMatch(f, db):
   print(f"{processing_iterator}/{db.track_count} - (fuzzy matching) {f}")
 
   tr = scrapeFileTags(f)
+  scraped_info = (unidecode(tr.artists[0].lower()), tr.title)
   if tr:
     res = Track.queryTrackSearch(tr)
     if not res:
@@ -214,6 +217,13 @@ def doFuzzyMatch(f, db):
     # get tags
     page = tr.queryTrackPage()
     tr.getTags(page)
+
+    # check if track title and artists really match our query
+    queried_info = ([unidecode(x.lower()) for x in tr.artists], tr.title)
+    title_prob = token_sort_ratio(scraped_info[1], queried_info[1])
+    if scraped_info[0] not in queried_info[0] or title_prob <= 80:
+      print(f"*** NO match for {f}")
+      return tr
 
     db.db[match_id] = tr
   return tr
