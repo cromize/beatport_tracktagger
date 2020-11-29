@@ -11,16 +11,16 @@ Even though it's able to tag files only using title and artist in attributes (`-
 
 Fuzzy matching uses probabilities, instead of exact 'yes' or 'no' matching. It can return false match, when info is not accurate enough or when beatport doesn't know about the release yet. I noticed that Beatport sometimes change the id of tracks.
 
-Dependency: newest Python 3
+Dependency: Python >= 3.6
 
 Installation
 -----
 ```
-# install dependencies
-pip3 install lxml urllib3 mutagen fuzzywuzzy
-
 # clone this project
 git clone https://github.com/cromize/beatport_tracktagger.git
+
+# install dependencies
+pip3 install -r requirements.txt
 
 # run
 ./tracktagger.py -t -s -a -i some/path
@@ -71,4 +71,5 @@ Libraries Used
 * lxml for parsing info
 * mutagen for assigning tags to files
 * fuzzywuzzy for fuzzy string matching
+* unidecode for text normalization
 
